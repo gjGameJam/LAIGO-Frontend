@@ -1,17 +1,11 @@
 import { useEffect, useState } from "react";
+import { health } from "./api";
 
 export default function Laigo() {
     const [apiStatus, setApiStatus] = useState("checking...");
-    const API = import.meta.env.VITE_API_URL;
 
-    // Dummy health check for now
     useEffect(() => {
-        // Replace with your real backend URL later
-        fetch(`${API}/health`)
-            .then(res => {
-                if (!res.ok) throw new Error();
-                return res.json();
-            })
+        health()
             .then(() => setApiStatus("online"))
             .catch(() => setApiStatus("offline"));
     }, []);
