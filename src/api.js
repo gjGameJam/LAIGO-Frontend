@@ -1,4 +1,5 @@
 const API = import.meta.env.VITE_API_URL;
+console.log("Resolved API:", API);
 
 // --- Health Check ---
 export async function health() {
