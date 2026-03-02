@@ -252,25 +252,34 @@ export function ParameterForm({
             )}
 
             {/* Boolean / Framed */}
-            <div className="form-row">
+            <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-2 py-1.5 sm:px-3 sm:py-2">
                 <div className="flex flex-col gap-0.5">
                     <Label htmlFor="bool-toggle">Framed</Label>
-                    <p>Add frame to lego mosaic set</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                        Add frame to lego mosaic set
+                    </p>
                 </div>
-                <Switch
+                <button
+                    type="button"
                     id="bool-toggle"
-                    checked={values.boolValue}
-                    onCheckedChange={(checked) =>
-                        onChange({ ...values, boolValue: checked })
+                    onClick={() =>
+                        onChange({ ...values, boolValue: !values.boolValue })
                     }
-                    className="switch-root"
+                    className={`inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${values.boolValue
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-muted-foreground/30 bg-muted text-foreground"
+                        }`}
                 >
-                    <span className="switch-thumb" />
-                </Switch>
+                    {values.boolValue ? "True" : "False"}
+                </button>
             </div>
 
             {/* Submit */}
-            <Button type="submit" className="w-full" disabled={!values.file}>
+            <Button
+                type="submit"
+                className="w-full border border-gray-300"
+                disabled={!values.file}
+            >
                 Convert
             </Button>
         </form>

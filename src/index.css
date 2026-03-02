@@ -32,9 +32,10 @@
     @apply text-sm font-medium text-gray-700;
   }
 
-  /* Text under labels (descriptions) */
+  /* Text under labels (descriptions) — UPDATED SIZE */
   .form-row p {
-    @apply text-[11px] text-gray-500;
+    @apply text-xs text-gray-500;
+    /* changed from text-[11px] to text-xs */
   }
 }
 
