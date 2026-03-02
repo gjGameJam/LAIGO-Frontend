@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react"
 import { Label } from "./assets/label"
-import { Slider } from "./assets/slider"
+import * as SliderPrimitive from "@radix-ui/react-slider"
 import { Switch } from "./assets/switch"
 import { Button } from "./assets/button"
 import { ImageIcon, UploadIcon, XIcon } from "lucide-react"
@@ -10,6 +10,7 @@ import { ImageIcon, UploadIcon, XIcon } from "lucide-react"
 export interface FormValues {
     file: File | null
     intValue: number
+    mosaicType: "3d" | "2d"
     floatValue: number
     boolValue: boolean
 }
@@ -68,9 +69,6 @@ export function ParameterForm({
         <form onSubmit={handleFormSubmit} className="flex flex-col gap-2.5 sm:gap-3">
             {/* Image Upload */}
             <div className="flex flex-col gap-1.5">
-                <Label htmlFor="file-upload" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Image
-                </Label>
                 <div
                     role="button"
                     tabIndex={0}
@@ -112,7 +110,7 @@ export function ParameterForm({
                                     variant="ghost"
                                     size="icon"
                                     className="size-6"
-                                    onClick={(e: React.MouseEvent) => {
+                                    onClick={(e) => {
                                         e.stopPropagation()
                                         removeFile()
                                     }}
@@ -150,69 +148,125 @@ export function ParameterForm({
                 </div>
             </div>
 
-            {/* Integer (1-40) */}
+            {/* Block width (1-40) */}
             <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
-                    <Label htmlFor="int-input" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Integer
-                    </Label>
+                    <div className="flex flex-col">
+                        <Label
+                            htmlFor="int-input"
+                            className="text-xs font-medium text-muted-foreground uppercase tracking-wide"
+                        >
+                            Block width
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                            Blocks are 16 studs long
+                        </p>
+                    </div>
                     <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono font-medium tabular-nums text-foreground">
                         {values.intValue}
                     </span>
                 </div>
-                <Slider
-                    id="int-input"
+
+                {/* Slider */}
+                <SliderPrimitive.Root
+                    className="slider-root"
                     min={1}
                     max={40}
                     step={1}
                     value={[values.intValue]}
-                    onValueChange={([v]: number[]) => onChange({ ...values, intValue: v })}
-                />
+                    onValueChange={([v]) => onChange({ ...values, intValue: v })}
+                >
+                    <SliderPrimitive.Track className="slider-track">
+                        <SliderPrimitive.Range className="slider-range" />
+                    </SliderPrimitive.Track>
+                    <SliderPrimitive.Thumb className="slider-thumb" />
+                </SliderPrimitive.Root>
+
                 <div className="flex justify-between text-[11px] text-muted-foreground">
                     <span>1</span>
                     <span>40</span>
                 </div>
             </div>
 
-            {/* Float (1-100) */}
-            <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                    <Label htmlFor="float-input" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Float
-                    </Label>
-                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono font-medium tabular-nums text-foreground">
-                        {values.floatValue.toFixed(1)}
-                    </span>
-                </div>
-                <Slider
-                    id="float-input"
-                    min={1}
-                    max={100}
-                    step={0.1}
-                    value={[values.floatValue]}
-                    onValueChange={([v]: number[]) =>
-                        onChange({ ...values, floatValue: parseFloat(v.toFixed(1)) })
-                    }
-                />
-                <div className="flex justify-between text-[11px] text-muted-foreground">
-                    <span>1.0</span>
-                    <span>100.0</span>
-                </div>
-            </div>
-
-            {/* Boolean */}
+            {/* Mosaic Type */}
             <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-2 py-1.5 sm:px-3 sm:py-2">
                 <div className="flex flex-col gap-0.5">
-                    <Label htmlFor="bool-toggle" className="text-sm">Enabled</Label>
-                    <p className="text-[11px] text-muted-foreground leading-tight">Toggle this option on or off</p>
+                    <Label className="text-sm">Mosaic Type</Label>
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                        {values.mosaicType === "3d" ? "3D" : "2D"} mosaic
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() =>
+                        onChange({
+                            ...values,
+                            mosaicType: values.mosaicType === "3d" ? "2d" : "3d",
+                        })
+                    }
+                    className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${values.mosaicType === "3d"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-muted-foreground/30 bg-muted text-foreground"
+                        }`}
+                >
+                    {values.mosaicType === "3d" ? "3D" : "2D"}
+                </button>
+            </div>
+
+            {/* % of background colors (1-100) — only visible in 3D mode */}
+            {values.mosaicType === "3d" && (
+                <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                        <Label
+                            htmlFor="float-input"
+                            className="text-xs font-medium text-muted-foreground uppercase tracking-wide"
+                        >
+                            % of background colors
+                        </Label>
+                        <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono font-medium tabular-nums text-foreground">
+                            {values.floatValue.toFixed(1)}
+                        </span>
+                    </div>
+
+                    <SliderPrimitive.Root
+                        className="slider-root"
+                        min={1}
+                        max={100}
+                        step={0.1}
+                        value={[values.floatValue]}
+                        onValueChange={([v]) =>
+                            onChange({ ...values, floatValue: parseFloat(v.toFixed(1)) })
+                        }
+                    >
+                        <SliderPrimitive.Track className="slider-track">
+                            <SliderPrimitive.Range className="slider-range" />
+                        </SliderPrimitive.Track>
+                        <SliderPrimitive.Thumb className="slider-thumb" />
+                    </SliderPrimitive.Root>
+
+                    <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span>1.0</span>
+                        <span>100.0</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Boolean / Framed */}
+            <div className="form-row">
+                <div className="flex flex-col gap-0.5">
+                    <Label htmlFor="bool-toggle">Framed</Label>
+                    <p>Add frame to lego mosaic set</p>
                 </div>
                 <Switch
                     id="bool-toggle"
                     checked={values.boolValue}
-                    onCheckedChange={(checked: boolean) =>
+                    onCheckedChange={(checked) =>
                         onChange({ ...values, boolValue: checked })
                     }
-                />
+                    className="switch-root"
+                >
+                    <span className="switch-thumb" />
+                </Switch>
             </div>
 
             {/* Submit */}
