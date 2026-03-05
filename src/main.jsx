@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import Laigo from "./laigo.jsx";
+import Laigo from "./laigo.tsx";
 import "./index.css";   // ← This is what actually activates Tailwind
 
 // Minimal render with StrictMode

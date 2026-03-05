@@ -1,0 +1,49 @@
+import { useState, useEffect } from "react"
+import { ParameterForm, FormValues } from "./parameter-form"
+import { OutputPanel } from "./output-panel"
+import { health } from "./api"
+
+export default function Laigo() {
+    const [apiStatus, setApiStatus] = useState("checking...")
+    const [values, setValues] = useState<FormValues>({
+        file: null,
+        intValue: 20,
+        mosaicType: "3d",
+        floatValue: 100,
+        boolValue: true,
+    })
+    const [inputPreview, setInputPreview] = useState<string | null>(null)
+    const [jobId, setJobId] = useState<string | null>(null)
+
+    useEffect(() => {
+        health()
+            .then(() => setApiStatus("online"))
+            .catch(() => setApiStatus("offline"))
+    }, [])
+
+    return (
+        <main style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", padding: "1rem" }}>
+            <h1>LAIGO: {apiStatus.toUpperCase()}</h1>
+
+            <div style={{ display: "flex", gap: "1rem", width: "100%", maxWidth: "1200px" }}>
+                {/* Input */}
+                <section style={{ flexShrink: 0, flexBasis: "300px", border: "1px solid #ccc", borderRadius: "8px", padding: "1rem", backgroundColor: "#fff" }}>
+                    <h2>Input</h2>
+                    <ParameterForm
+                        values={values}
+                        onChange={setValues}
+                        preview={inputPreview}
+                        onPreviewChange={setInputPreview}
+                        onJobCreated={(id) => setJobId(id)}
+                    />
+                </section>
+
+                {/* Output */}
+                <section style={{ flex: 1, border: "1px solid #ccc", borderRadius: "8px", padding: "1rem", backgroundColor: "#fff" }}>
+                    <h2>Output</h2>
+                    {jobId && <OutputPanel jobId={jobId} />}
+                </section>
+            </div>
+        </main>
+    )
+}
