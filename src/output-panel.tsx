@@ -1,22 +1,66 @@
-import { Button } from "./assets/button"
-import { DownloadIcon, ImageIcon } from "lucide-react"
+import { useEffect, useState } from "react";
+import { Button } from "./assets/button";
+import { DownloadIcon, ImageIcon } from "lucide-react";
+import { getJob, getDownloadUrl } from "./api";
 
 interface OutputPanelProps {
-    outputImage: string | null
-    outputFilename: string | null
-    isProcessing: boolean
+    jobId: string | null;
+    outputFilename?: string | null;
+    preview?: string | null; // optional preview image URL
 }
 
-export function OutputPanel({
-    outputImage,
-    outputFilename,
-    isProcessing,
-}: OutputPanelProps) {
+export function OutputPanel({ jobId, outputFilename, preview }: OutputPanelProps) {
+    const [status, setStatus] = useState<"idle" | "running" | "complete" | "failed">("idle");
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!jobId) {
+            setStatus("idle");
+            setDownloadUrl(null);
+            setError(null);
+            return;
+        }
+
+        setStatus("running");
+        setDownloadUrl(null);
+        setError(null);
+
+        let timer: number;
+
+        const poll = async () => {
+            try {
+                const result = await getJob(jobId);
+
+                // Update status
+                if (result.status === "complete") {
+                    setStatus("complete");
+                    setDownloadUrl(getDownloadUrl(jobId));
+                    return; // stop polling
+                } else if (result.status === "failed") {
+                    setStatus("failed");
+                    setError(result.error ?? "Job failed");
+                    return; // stop polling
+                } else {
+                    setStatus("running");
+                    timer = window.setTimeout(poll, 2000); // poll again in 2s
+                }
+            } catch (err: any) {
+                setStatus("failed");
+                setError(err.message ?? "Error fetching job status");
+            }
+        };
+
+        poll();
+
+        return () => clearTimeout(timer);
+    }, [jobId]);
+
     return (
         <div className="flex h-full flex-col">
-            {/* Output image area */}
+            {/* Output / preview */}
             <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg border bg-muted/10">
-                {isProcessing ? (
+                {status === "running" ? (
                     <div className="flex flex-col items-center gap-2 sm:gap-3">
                         <div className="relative size-8 sm:size-10">
                             <div className="absolute inset-0 rounded-full border-2 border-muted-foreground/20" />
@@ -24,9 +68,11 @@ export function OutputPanel({
                         </div>
                         <p className="text-xs text-muted-foreground sm:text-sm">Processing image...</p>
                     </div>
-                ) : outputImage ? (
+                ) : status === "failed" ? (
+                    <p className="text-red-500 text-sm text-center">{error}</p>
+                ) : preview ? (
                     <img
-                        src={outputImage}
+                        src={preview}
                         alt={outputFilename ?? "Converted output"}
                         className="max-h-full max-w-full object-contain p-2 sm:p-4"
                     />
@@ -45,24 +91,21 @@ export function OutputPanel({
                 )}
             </div>
 
-            {/* Download area */}
+            {/* Download button */}
             <div className="mt-2 sm:mt-3">
                 <Button
-                    variant="outline"
+                    variant={status === "failed" ? "destructive" : "outline"}
                     className="w-full gap-2"
-                    disabled={!outputImage || isProcessing}
+                    disabled={status !== "complete" || !downloadUrl}
                     onClick={() => {
-                        if (!outputImage) return
-                        const a = document.createElement("a")
-                        a.href = outputImage
-                        a.download = outputFilename ?? "output.zip"
-                        a.click()
+                        if (!downloadUrl) return;
+                        window.location.href = downloadUrl;
                     }}
                 >
                     <DownloadIcon className="size-4" />
-                    Download ZIP
+                    {status === "running" ? "Processing..." : status === "failed" ? "Failed" : "Download ZIP"}
                 </Button>
             </div>
         </div>
-    )
+    );
 }
