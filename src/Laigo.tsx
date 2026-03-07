@@ -43,18 +43,11 @@ export default function Laigo() {
                 }}
             >
                 {/* Input */}
-                <section
-                    style={{
-                        flexShrink: 0,
-                        flexBasis: "300px",
-                        border: "1px solid #ccc",
-                        borderRadius: "8px",
-                        padding: "1rem",
-                        backgroundColor: "#fff"
-                    }}
-                >
-                    <h2 className="section-title">Input</h2>
+                <section className="parameter-frame">
+                    <div className="corner-bottom-left"></div>
+                    <div className="corner-bottom-right"></div>
 
+                    <h2 className="section-title">Input</h2>
                     <ParameterForm
                         values={values}
                         onChange={setValues}
@@ -65,20 +58,29 @@ export default function Laigo() {
                 </section>
 
                 {/* Output */}
-                <section
-                    style={{
-                        flex: 1,
-                        border: "1px solid #ccc",
-                        borderRadius: "8px",
-                        padding: "1rem",
-                        backgroundColor: "#fff",
-                        display: "flex",
-                        flexDirection: "column"
-                    }}
-                >
-                    <h2 className="section-title">Output</h2>
+                <section className="output-wall" style={{ flex: 1 }}>
+                    <h2 className="section-title" style={{ marginTop: '1.55rem' }}>Output</h2>
 
-                    <div style={{ flex: 1 }}>
+                    <div className="output-wall-studs">
+                        {[...Array(12)].map((_, i) => (
+                            <div key={i} className="relative output-stud">
+                                <div
+                                    className="border-2 border-black shadow-[inset_0_1px_0_rgba(0,0,0,0.2)]"
+                                    style={{ width: '20px', height: '11px', backgroundColor: '#b0b0b0' }}
+                                />
+                                <div
+                                    className="absolute left-0 w-[20px] rounded-full border-black border-2 z-10"
+                                    style={{
+                                        height: '7px',
+                                        top: `${(11 - 7) / 2 - 4}px`,
+                                        backgroundColor: '#d0d0d0',
+                                    }}
+                                />
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                         <OutputPanel jobId={jobId ?? undefined} />
                     </div>
                 </section>
