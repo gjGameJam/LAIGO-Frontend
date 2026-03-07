@@ -7,7 +7,7 @@ export default function Laigo() {
     const [apiStatus, setApiStatus] = useState("checking...")
     const [values, setValues] = useState<FormValues>({
         file: null,
-        intValue: 20,
+        intValue: 4,
         mosaicType: "3d",
         floatValue: 100,
         boolValue: true,
@@ -22,13 +22,39 @@ export default function Laigo() {
     }, [])
 
     return (
-        <main style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", padding: "1rem" }}>
+        <main
+            style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "1rem",
+                padding: "1rem"
+            }}
+        >
             <h1>LAIGO: {apiStatus.toUpperCase()}</h1>
 
-            <div style={{ display: "flex", gap: "1rem", width: "100%", maxWidth: "1200px" }}>
+            <div
+                style={{
+                    display: "flex",
+                    gap: "1rem",
+                    width: "100%",
+                    maxWidth: "1200px",
+                    alignItems: "stretch"
+                }}
+            >
                 {/* Input */}
-                <section style={{ flexShrink: 0, flexBasis: "300px", border: "1px solid #ccc", borderRadius: "8px", padding: "1rem", backgroundColor: "#fff" }}>
+                <section
+                    style={{
+                        flexShrink: 0,
+                        flexBasis: "300px",
+                        border: "1px solid #ccc",
+                        borderRadius: "8px",
+                        padding: "1rem",
+                        backgroundColor: "#fff"
+                    }}
+                >
                     <h2>Input</h2>
+
                     <ParameterForm
                         values={values}
                         onChange={setValues}
@@ -39,9 +65,22 @@ export default function Laigo() {
                 </section>
 
                 {/* Output */}
-                <section style={{ flex: 1, border: "1px solid #ccc", borderRadius: "8px", padding: "1rem", backgroundColor: "#fff" }}>
+                <section
+                    style={{
+                        flex: 1,
+                        border: "1px solid #ccc",
+                        borderRadius: "8px",
+                        padding: "1rem",
+                        backgroundColor: "#fff",
+                        display: "flex",
+                        flexDirection: "column"
+                    }}
+                >
                     <h2>Output</h2>
-                    {jobId && <OutputPanel jobId={jobId} />}
+
+                    <div style={{ flex: 1 }}>
+                        <OutputPanel jobId={jobId ?? undefined} />
+                    </div>
                 </section>
             </div>
         </main>
