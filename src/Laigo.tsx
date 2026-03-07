@@ -31,7 +31,7 @@ export default function Laigo() {
                 padding: "1rem"
             }}
         >
-            <h1>LAIGO: {apiStatus.toUpperCase()}</h1>
+            <h1 className="laigo-title">LAIGO: {apiStatus.toUpperCase()}</h1>
 
             <div
                 style={{
@@ -53,7 +53,7 @@ export default function Laigo() {
                         backgroundColor: "#fff"
                     }}
                 >
-                    <h2>Input</h2>
+                    <h2 className="section-title">Input</h2>
 
                     <ParameterForm
                         values={values}
@@ -76,7 +76,7 @@ export default function Laigo() {
                         flexDirection: "column"
                     }}
                 >
-                    <h2>Output</h2>
+                    <h2 className="section-title">Output</h2>
 
                     <div style={{ flex: 1 }}>
                         <OutputPanel jobId={jobId ?? undefined} />

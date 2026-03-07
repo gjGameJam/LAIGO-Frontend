@@ -2,18 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---- Form Defaults ---- */
+/* ---- Fonts ---- */
+@font-face {
+  font-family: "LegoThick";
+  src: url("./fonts/LegoThick/LegoThick.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Nunito";
+  src: url("./fonts/Nunito/Nunito-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Nunito";
+  src: url("./fonts/Nunito/Nunito-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Nunito";
+  src: url("./fonts/Nunito/Nunito-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* ---- Base Styles ---- */
 @layer base {
+  body {
+    font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  }
 
   input,
   textarea,
   select {
-    @apply border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900;
+    @apply border border-gray-300 rounded-md px-3 py-2 text-gray-900;
+    text-align: center;
+    /* center input text */
   }
 
   input::placeholder,
   textarea::placeholder {
-    @apply text-gray-400;
+    @apply text-gray-400 text-center;
   }
 
   input:focus,
@@ -22,27 +56,49 @@
     @apply outline-none ring-2 ring-blue-500 border-blue-500;
   }
 
-  /* Container for all form rows */
-  .form-row {
-    @apply flex items-center justify-between rounded-md border bg-gray-100 px-3 py-2 transition-colors;
-  }
-
-  /* Labels inside form rows */
+  /* Form row labels */
   .form-row label {
-    @apply text-sm font-medium text-gray-700;
+    @apply text-xs font-medium text-gray-700 uppercase tracking-wide text-left;
   }
 
-  /* Text under labels (descriptions) — UPDATED SIZE */
+  /* Form subtexts (descriptions) */
   .form-row p {
-    @apply text-xs text-gray-500;
-    /* changed from text-[11px] to text-xs */
+    @apply text-xs text-gray-500 leading-tight text-left;
   }
 }
 
-/* ---- Sliders & Switches ---- */
+/* ---- Components ---- */
 @layer components {
 
-  /* Slider */
+  /* LAIGO main title */
+  .laigo-title {
+    font-family: "LegoThick", sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    text-align: center;
+    font-size: 2rem;
+    letter-spacing: 0.03em;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 2px 0 rgba(0, 0, 0, 0.15);
+  }
+
+  /* Input/Output section titles */
+  .section-title {
+    font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+
+  /* LEGO-style buttons text */
+  .lego-button-text {
+    font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* Sliders */
   .slider-root {
     @apply relative h-4 w-full flex items-center;
   }
@@ -80,5 +136,12 @@
 
   .switch-root:focus-visible .switch-thumb {
     @apply ring-2 ring-blue-300;
+  }
+
+  /* Center buttons */
+  button,
+  .inline-flex {
+    @apply uppercase text-center;
+    font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
   }
 }

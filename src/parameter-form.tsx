@@ -113,7 +113,7 @@ export function ParameterForm({
                             <div className="flex size-8 items-center justify-center rounded-full bg-muted">
                                 {isDragging ? <UploadIcon className="size-4 text-primary" /> : <ImageIcon className="size-4 text-muted-foreground" />}
                             </div>
-                            <p className="mt-1.5 text-xs font-medium text-foreground">Drop image or click to browse</p>
+                            <p className="mt-1.5 text-xs font-medium text-foreground">Drop Image or Click to Browse</p>
                             <p className="text-[11px] text-muted-foreground">PNG, JPG, GIF, WebP</p>
                         </>
                     )}
@@ -132,11 +132,11 @@ export function ParameterForm({
                 <div className="flex items-center justify-between">
                     <div className="flex flex-col">
                         <Label htmlFor="int-input" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Block width
+                            Block Width
                         </Label>
-                        <p className="text-[11px] text-muted-foreground leading-tight">Blocks are 16 studs long</p>
+                        <p className="text-[11px] text-muted-foreground leading-tight">Blocks are 16 studs wide</p>
                     </div>
-                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono font-medium tabular-nums text-foreground">{values.intValue}</span>
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono font-sm tabular-nums text-foreground">{values.intValue}</span>
                 </div>
                 <SliderPrimitive.Root
                     className="slider-root"
@@ -151,24 +151,28 @@ export function ParameterForm({
                     </SliderPrimitive.Track>
                     <SliderPrimitive.Thumb className="slider-thumb" />
                 </SliderPrimitive.Root>
-                <div className="flex justify-between text-[11px] text-muted-foreground">
+                <div className="flex justify-between text-[10px] text-muted-foreground">
                     <span>1</span>
                     <span>40</span>
                 </div>
             </div>
 
             {/* -------------------- Mosaic Type -------------------- */}
-            <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-2 py-1.5 sm:px-3 sm:py-2">
-                <div className="flex flex-col gap-0.5">
-                    <Label className="text-sm">Mosaic Type</Label>
+            <div className="flex justify-between items-center rounded-lg border bg-muted/20 px-2 py-1.5 sm:px-3 sm:py-2">
+                <div className="flex flex-col gap-0.5 text-left">
+                    <Label className="text-sm uppercase">Mosaic Type</Label>
                     <p className="text-[11px] text-muted-foreground leading-tight">
-                        {values.mosaicType === "3d" ? "3D" : "2D"} mosaic
+                        {values.mosaicType === "3d" ? "3D" : "2D"} Mosaic
                     </p>
                 </div>
+
                 <button
                     type="button"
                     onClick={() => onChange({ ...values, mosaicType: values.mosaicType === "3d" ? "2d" : "3d" })}
-                    className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${values.mosaicType === "3d" ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30 bg-muted text-foreground"}`}
+                    className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${values.mosaicType === "3d"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-muted-foreground/30 bg-muted text-foreground"
+                        }`}
                 >
                     {values.mosaicType === "3d" ? "3D" : "2D"}
                 </button>
@@ -178,8 +182,8 @@ export function ParameterForm({
             {values.mosaicType === "3d" && (
                 <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
-                        <Label htmlFor="float-input" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">% of background colors</Label>
-                        <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono font-medium tabular-nums text-foreground">{values.floatValue.toFixed(1)}</span>
+                        <Label htmlFor="float-input" className="text-xs font-sm text-muted-foreground uppercase tracking-wide">% of Background Colors</Label>
+                        <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono font-sm tabular-nums text-foreground">{values.floatValue.toFixed(1)}</span>
                     </div>
                     <SliderPrimitive.Root
                         className="slider-root"
@@ -194,7 +198,7 @@ export function ParameterForm({
                         </SliderPrimitive.Track>
                         <SliderPrimitive.Thumb className="slider-thumb" />
                     </SliderPrimitive.Root>
-                    <div className="flex justify-between text-[11px] text-muted-foreground">
+                    <div className="flex justify-between text-[10px] text-muted-foreground">
                         <span>1.0</span>
                         <span>100.0</span>
                     </div>
@@ -205,7 +209,7 @@ export function ParameterForm({
             <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-2 py-1.5 sm:px-3 sm:py-2">
                 <div className="flex flex-col gap-0.5">
                     <Label htmlFor="bool-toggle">Framed</Label>
-                    <p className="text-[11px] text-muted-foreground leading-tight">Add frame to lego mosaic set</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">Add Frame to Mosaic Set</p>
                 </div>
                 <button
                     type="button"

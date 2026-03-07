@@ -5,8 +5,12 @@ export default {
     "./index.html",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        LegoThick: ["LegoThick", "ui-sans-serif", "system-ui", "sans-serif"],
+        Nunito: ["Nunito", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
+    },
   },
   plugins: [],
 }
-
