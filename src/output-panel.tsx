@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Button } from "./assets/button"
 import { DownloadIcon, ImageIcon } from "lucide-react"
 import { getJob, getDownloadUrl } from "./api"
+import { LegoButton } from "./LegoButton"
 
 interface OutputPanelProps {
     jobId?: string
@@ -25,11 +25,14 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
         }
 
         let timer: number | null = null
+        let active = true
 
         const poll = async () => {
+            if (!active) return
+
             try {
                 const job = await getJob(jobId)
-                setStatus(job.status)
+                setStatus(job.status) // <-- always update status
 
                 if (job.status === "complete") {
                     setDownloadUrl(getDownloadUrl(jobId))
@@ -42,9 +45,12 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                     return
                 }
 
+                // Continue polling every 2 seconds
                 timer = window.setTimeout(poll, 2000)
             } catch (err: any) {
+                console.error(err)
                 setError(err.message || "Failed to fetch job status")
+                setStatus("failed") // make sure the button turns red
             }
         }
 
@@ -52,14 +58,15 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
         poll()
 
         return () => {
+            active = false
             if (timer) clearTimeout(timer)
         }
     }, [jobId])
 
-    // Determine button color
-    let buttonColorClass = "bg-gray-300 text-gray-800 cursor-not-allowed"
-    if (status === "complete" && downloadUrl) buttonColorClass = "bg-green-600 text-white hover:bg-green-700"
-    if (status === "failed") buttonColorClass = "bg-red-600 text-white"
+    // LEGO brick color
+    let brickColor = "#b0b0b0" // grey
+    if (status === "complete" && downloadUrl) brickColor = "#00a000" // green
+    if (status === "failed") brickColor = "#d00000" // red
 
     return (
         <div className="flex flex-col h-full">
@@ -69,7 +76,6 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                       bg-[linear-gradient(45deg,#f8f8f8_25%,transparent_25%),linear-gradient(-45deg,#f8f8f8_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f8f8f8_75%),linear-gradient(-45deg,transparent_75%,#f8f8f8_75%)]
                       bg-[size:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px]">
 
-                {/* Idle */}
                 {status === "idle" && (
                     <div className="flex flex-col items-center gap-3 text-muted-foreground">
                         <ImageIcon className="size-10 opacity-50" />
@@ -77,7 +83,6 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                     </div>
                 )}
 
-                {/* Running */}
                 {status === "running" && (
                     <div className="flex flex-col items-center gap-3">
                         <div className="relative w-10 h-10">
@@ -88,10 +93,8 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                     </div>
                 )}
 
-                {/* Error */}
                 {status === "failed" && <p className="text-sm text-red-500">{error}</p>}
 
-                {/* Preview */}
                 {previewUrl && status === "complete" && (
                     <div className="w-full h-full flex items-center justify-center">
                         <img
@@ -102,24 +105,18 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                     </div>
                 )}
 
-                {/* Complete without preview */}
                 {!previewUrl && status === "complete" && (
                     <p className="text-sm text-green-600">Job complete</p>
                 )}
             </div>
 
-            {/* Footer */}
+            {/* LEGO Brick Button */}
             <div className="flex justify-center pt-3 border-t mt-3">
-                <Button
-                    className={`gap-2 ${buttonColorClass}`}
-                    disabled={!(status === "complete" && downloadUrl)}
-                    onClick={() => {
-                        if (downloadUrl) window.open(downloadUrl, "_blank")
-                    }}
-                >
-                    <DownloadIcon className="size-4" />
-                    Download ZIP
-                </Button>
+                <LegoButton
+                    status={status}
+                    onClick={() => { if (downloadUrl) window.open(downloadUrl, "_blank") }}
+                    icon={<DownloadIcon className="size-4" />}
+                />
             </div>
         </div>
     )
