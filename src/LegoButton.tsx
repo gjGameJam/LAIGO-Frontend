@@ -1,7 +1,7 @@
 interface LegoButtonProps {
     status: "idle" | "running" | "complete" | "failed";
     onClick: () => void;
-    disabled?: boolean;
+    disabled?: boolean; // optional extra disabling
     label?: string;
     icon?: React.ReactNode;
     studCount?: number;
@@ -22,52 +22,46 @@ export function LegoButton({
     const studTopOffset = -2;      // studs slightly lower
     const ovalOffset = -4;         // move ovals up (negative = up)
     const textOffset = 6;          // move text lower
-
-    // Define colors
-    const darkGreen = "#009624";
-    const lightGreen = "#00c038";
-    const redBody = "#d00000";
-    const redTop = "#ff4d4d";
-    const greyBody = "#b0b0b0";
-    const greyTop = "#d0d0d0";
     const borderLineColor = "#000000"; // black separation line
 
-    // Determine colors and label based on status
+    // Determine colors based on status
     let buttonBodyColor: string;
     let buttonTopColor: string;
     let buttonLabel: string;
 
     switch (status) {
         case "complete":
-            buttonBodyColor = darkGreen;
-            buttonTopColor = lightGreen;
+            buttonBodyColor = "#009624"; // dark green
+            buttonTopColor = "#00c038";  // light green
             buttonLabel = label;
             break;
         case "failed":
-            buttonBodyColor = redBody;
-            buttonTopColor = redTop;
+            buttonBodyColor = "#d00000";
+            buttonTopColor = "#ff4d4d";
             buttonLabel = "Failed";
             break;
-        default: // idle or running
-            buttonBodyColor = greyBody;
-            buttonTopColor = greyTop;
+        default:
+            buttonBodyColor = "#b0b0b0"; // grey
+            buttonTopColor = "#d0d0d0";
             buttonLabel = label;
             break;
     }
 
+    // Only allow click if job is complete and not additionally disabled
+    const isClickable = status === "complete" && !disabled;
+
     return (
         <button
-            disabled={true} // always disabled; job buttons are not clickable once started
-            onClick={onClick} // optional; will never trigger while disabled
-            className="relative w-[220px] h-[48px] border-2 border-black flex items-center justify-center shadow-[inset_0_4px_0_rgba(0,0,0,0.2)] disabled:opacity-100 disabled:cursor-not-allowed rounded-none"
+            disabled={!isClickable}
+            onClick={onClick}
+            className={`relative w-[220px] h-[48px] border-2 border-black flex items-center justify-center
+                        shadow-[inset_0_4px_0_rgba(0,0,0,0.2)]
+                        disabled:opacity-60 disabled:cursor-not-allowed rounded-none`}
         >
             {/* Top cap */}
             <div
                 className="absolute top-0 left-0 w-full"
-                style={{
-                    height: `${topCapHeight}px`,
-                    backgroundColor: buttonTopColor,
-                }}
+                style={{ height: `${topCapHeight}px`, backgroundColor: buttonTopColor }}
             />
 
             {/* Thin black separation line */}
@@ -85,7 +79,7 @@ export function LegoButton({
             <div
                 className="absolute left-0 w-full bottom-0"
                 style={{
-                    top: `${topCapHeight}px`, // starts just below top strip
+                    top: `${topCapHeight}px`,
                     backgroundColor: buttonBodyColor,
                 }}
             />
@@ -100,11 +94,7 @@ export function LegoButton({
                         {/* Stud body */}
                         <div
                             className="border-2 border-black shadow-[inset_0_1px_0_rgba(0,0,0,0.2)]"
-                            style={{
-                                backgroundColor: buttonBodyColor,
-                                width: `${studWidth}px`,
-                                height: `${studHeight}px`,
-                            }}
+                            style={{ width: `${studWidth}px`, height: `${studHeight}px`, backgroundColor: buttonBodyColor }}
                         />
                         {/* Stud top oval */}
                         <div
