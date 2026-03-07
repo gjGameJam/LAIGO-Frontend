@@ -58,29 +58,42 @@ export default function Laigo() {
                 </section>
 
                 {/* Output */}
-                <section className="output-wall" style={{ flex: 1 }}>
-                    <h2 className="section-title" style={{ marginTop: '1.55rem' }}>Output</h2>
+                <section className="output-wall" style={{ flex: 1, position: 'relative' }}>
+                    <h2 className="section-title" style={{ marginTop: '2.55rem' }}>Output</h2>
 
+                    {/* Top strip */}
+                    <div className="output-wall-top" />
+
+                    {/* Studs */}
                     <div className="output-wall-studs">
-                        {[...Array(12)].map((_, i) => (
+                        {[...Array(26)].map((_, i) => (
                             <div key={i} className="relative output-stud">
+
+                                {/* Stud body (matches wall body) */}
                                 <div
                                     className="border-2 border-black shadow-[inset_0_1px_0_rgba(0,0,0,0.2)]"
-                                    style={{ width: '20px', height: '11px', backgroundColor: '#b0b0b0' }}
+                                    style={{
+                                        width: "20px",
+                                        height: "11px",
+                                        backgroundColor: "#d1d1d1"
+                                    }}
                                 />
+
+                                {/* Stud top (matches wall top strip) */}
                                 <div
                                     className="absolute left-0 w-[20px] rounded-full border-black border-2 z-10"
                                     style={{
-                                        height: '7px',
+                                        height: "7px",
                                         top: `${(11 - 7) / 2 - 4}px`,
-                                        backgroundColor: '#d0d0d0',
+                                        backgroundColor: "#e5e5e5"
                                     }}
                                 />
+
                             </div>
                         ))}
                     </div>
 
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: '1rem' }}>
                         <OutputPanel jobId={jobId ?? undefined} />
                     </div>
                 </section>

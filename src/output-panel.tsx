@@ -32,7 +32,7 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
 
             try {
                 const job = await getJob(jobId)
-                setStatus(job.status) // always update status
+                setStatus(job.status)
 
                 if (job.status === "complete") {
                     setDownloadUrl(getDownloadUrl(jobId))
@@ -62,10 +62,9 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
         }
     }, [jobId])
 
-    // LEGO brick color
-    let brickColor = "#b0b0b0" // grey
-    if (status === "complete" && downloadUrl) brickColor = "#00a000" // green
-    if (status === "failed") brickColor = "#d00000" // red
+    let brickColor = "#b0b0b0"
+    if (status === "complete" && downloadUrl) brickColor = "#00a000"
+    if (status === "failed") brickColor = "#d00000"
 
     return (
         <div className="flex flex-col h-full font-LegoThick">
@@ -111,8 +110,8 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                 )}
             </div>
 
-            {/* LEGO Brick Button */}
-            <div className="flex justify-center pt-3 mt-3">
+            {/* LEGO Brick Button with bottom margin */}
+            <div className="flex justify-center mt-3 mb-4 pt-3">
                 <LegoButton
                     status={status}
                     onClick={() => { if (downloadUrl) window.open(downloadUrl, "_blank") }}
