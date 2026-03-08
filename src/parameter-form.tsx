@@ -6,6 +6,7 @@ import * as SliderPrimitive from "@radix-ui/react-slider"
 import { Button } from "./assets/button"
 import { ImageIcon, UploadIcon, XIcon } from "lucide-react"
 import { submitJob, buildFormData } from "./api"
+import { LegoProgressButton } from "./LegoProgressButton"
 
 export interface FormValues {
     file: File | null
@@ -76,6 +77,24 @@ export function ParameterForm({
         } finally {
             setIsSubmitting(false)
         }
+    }
+
+    const [progress, setProgress] = useState(0)
+    const [running, setRunning] = useState(false)
+
+    const handleConvert = () => {
+        setRunning(true)
+
+        let p = 0
+        const interval = setInterval(() => {
+            p += 1
+            setProgress(p)
+
+            if (p >= 100) {
+                clearInterval(interval)
+                setRunning(false)
+            }
+        }, 500)
     }
 
     return (
@@ -222,9 +241,11 @@ export function ParameterForm({
             </div>
 
             {/* -------------------- Submit Button -------------------- */}
-            <Button type="submit" className="w-full border border-gray-300" disabled={!values.file || isSubmitting}>
-                {isSubmitting ? "Submitting..." : "Convert"}
-            </Button>
+            <LegoProgressButton
+                progress={progress}
+                running={isSubmitting}
+                disabled={!values.file}
+            />
 
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
         </form>
