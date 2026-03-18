@@ -7,6 +7,7 @@ import { Button } from "./assets/button"
 import { ImageIcon, UploadIcon, XIcon } from "lucide-react"
 import { submitJob, buildFormData } from "./api"
 import { LegoProgressButton } from "./LegoProgressButton"
+import { getJob } from "./api"
 
 export interface FormValues {
     file: File | null
@@ -32,7 +33,6 @@ export function ParameterForm({
     onJobCreated,
 }: ParameterFormProps) {
     const [isDragging, setIsDragging] = useState(false)
-    const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -60,45 +60,76 @@ export function ParameterForm({
         if (fileInputRef.current) fileInputRef.current.value = ""
     }, [handleFile])
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!values.file) return
-
-        setIsSubmitting(true)
-        setError(null)
-
-        try {
-            const formData = buildFormData(values)
-            const result = await submitJob(formData)
-            onJobCreated(result.job_id)
-        } catch (err: any) {
-            console.error("Job submission failed:", err)
-            setError(err.message || "Job submission failed")
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
-
+    // -------------------- Conversion Progress --------------------
     const [progress, setProgress] = useState(0)
     const [running, setRunning] = useState(false)
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+    // jobDone ref lets the interval know to stop ticking at 99 without a stale closure
+    const jobDoneRef = useRef(false)
 
     const handleConvert = () => {
+        if (!values.file) return
+
         setRunning(true)
+        setProgress(0)
+        setError(null)
+        jobDoneRef.current = false
 
-        let p = 0
-        const interval = setInterval(() => {
-            p += 1
-            setProgress(p)
+        const totalDuration = 30000
+        const updateInterval = 100
+        const totalSteps = totalDuration / updateInterval
+        let currentStep = 0
 
-            if (p >= 100) {
-                clearInterval(interval)
-                setRunning(false)
+        // Clear any leftover interval from a previous run
+        if (intervalRef.current) clearInterval(intervalRef.current)
+
+        intervalRef.current = setInterval(() => {
+            // If the job finished, stop ticking — the finally block owns progress from here
+            if (jobDoneRef.current) {
+                clearInterval(intervalRef.current!)
+                return
             }
-        }, 500)
+            currentStep++
+            const newProgress = (currentStep / totalSteps) * 100
+            setProgress(Math.min(newProgress, 99))
+            if (currentStep >= totalSteps) clearInterval(intervalRef.current!)
+        }, updateInterval)
+
+            ; (async () => {
+                try {
+                    const formData = buildFormData(values)
+                    const { job_id } = await submitJob(formData)
+                    onJobCreated(job_id)
+
+                    let jobDone = false
+                    while (!jobDone) {
+                        await new Promise(r => setTimeout(r, 500))
+                        const job = await getJob(job_id)
+                        console.log("Polled job:", job)
+                        if (job.status === "complete" || job.status === "failed") {
+                            jobDone = true
+                        }
+                    }
+                } catch (err: any) {
+                    console.error("Job submission failed:", err)
+                    setError(err.message || "Job submission failed")
+                } finally {
+                    jobDoneRef.current = true
+                    clearInterval(intervalRef.current!)
+                    intervalRef.current = null
+                    console.log("FINALLY block reached — setting progress to 100")  // ← add
+                    setProgress(100)
+                    setTimeout(() => {
+                        console.log("TIMEOUT fired — resetting running/progress")   // ← add
+                        setRunning(false)
+                        setProgress(0)
+                    }, 500)
+                }
+            })()
     }
 
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 sm:gap-3">
+        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-2.5 sm:gap-3">
             {/* -------------------- File Upload -------------------- */}
             <div className="flex flex-col gap-1.5">
                 <div
@@ -184,7 +215,6 @@ export function ParameterForm({
                         {values.mosaicType === "3d" ? "3D" : "2D"} Mosaic
                     </p>
                 </div>
-
                 <button
                     type="button"
                     onClick={() => onChange({ ...values, mosaicType: values.mosaicType === "3d" ? "2d" : "3d" })}
@@ -240,11 +270,12 @@ export function ParameterForm({
                 </button>
             </div>
 
-            {/* -------------------- Submit Button -------------------- */}
+            {/* -------------------- Convert Button -------------------- */}
             <LegoProgressButton
                 progress={progress}
-                running={isSubmitting}
+                running={running}
                 disabled={!values.file}
+                onClick={handleConvert}
             />
 
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
