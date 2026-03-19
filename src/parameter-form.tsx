@@ -63,9 +63,6 @@ export function ParameterForm({
     // -------------------- Conversion Progress --------------------
     const [progress, setProgress] = useState(0)
     const [running, setRunning] = useState(false)
-    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-    // jobDone ref lets the interval know to stop ticking at 99 without a stale closure
-    const jobDoneRef = useRef(false)
 
     const handleConvert = () => {
         if (!values.file) return
@@ -73,27 +70,6 @@ export function ParameterForm({
         setRunning(true)
         setProgress(0)
         setError(null)
-        jobDoneRef.current = false
-
-        const totalDuration = 30000
-        const updateInterval = 100
-        const totalSteps = totalDuration / updateInterval
-        let currentStep = 0
-
-        // Clear any leftover interval from a previous run
-        if (intervalRef.current) clearInterval(intervalRef.current)
-
-        intervalRef.current = setInterval(() => {
-            // If the job finished, stop ticking — the finally block owns progress from here
-            if (jobDoneRef.current) {
-                clearInterval(intervalRef.current!)
-                return
-            }
-            currentStep++
-            const newProgress = (currentStep / totalSteps) * 100
-            setProgress(Math.min(newProgress, 99))
-            if (currentStep >= totalSteps) clearInterval(intervalRef.current!)
-        }, updateInterval)
 
             ; (async () => {
                 try {
@@ -105,7 +81,7 @@ export function ParameterForm({
                     while (!jobDone) {
                         await new Promise(r => setTimeout(r, 500))
                         const job = await getJob(job_id)
-                        console.log("Polled job:", job)
+                        setProgress(job.progress ?? 0)
                         if (job.status === "complete" || job.status === "failed") {
                             jobDone = true
                         }
@@ -114,13 +90,8 @@ export function ParameterForm({
                     console.error("Job submission failed:", err)
                     setError(err.message || "Job submission failed")
                 } finally {
-                    jobDoneRef.current = true
-                    clearInterval(intervalRef.current!)
-                    intervalRef.current = null
-                    console.log("FINALLY block reached — setting progress to 100")  // ← add
                     setProgress(100)
                     setTimeout(() => {
-                        console.log("TIMEOUT fired — resetting running/progress")   // ← add
                         setRunning(false)
                         setProgress(0)
                     }, 500)
