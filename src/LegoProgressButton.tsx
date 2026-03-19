@@ -25,40 +25,30 @@ export function LegoProgressButton({
 
     // Button dimensions — must match className below
     const buttonWidth = 220
-    // Stud row is w-[94%] px-2, so usable width = 220 * 0.94 - 16 (px-2 = 8px each side)
     const studRowWidth = buttonWidth * 0.94
-    const studRowPadding = 8 // px-2 = 8px each side
+    const studRowPadding = 8
     const usableWidth = studRowWidth - studRowPadding * 2
-    // Left edge of stud row relative to button
     const studRowLeft = (buttonWidth - studRowWidth) / 2 + studRowPadding
 
-    // Base face colors
+    // Colors
     const baseColor = "#2563eb"
     const baseCapColor = "#60a5fa"
     const fillColor = "#ffd400"
     const fillCapColor = "#ffe866"
 
-    const isYellow = running && progress < 100
+    // How many px of the button width is filled
+    const fillPx = running ? (progress / 100) * buttonWidth : 0
 
-    // How many px of the button is filled
-    const fillPx = (progress / 100) * buttonWidth
+    // Shared transition for all overlay widths
+    const transition = "width 0.1s linear"
 
-    // For a stud at a given left edge (relative to button), compute the gradient
-    // localFill is what % of THIS stud's width is filled
-    function studGradient(studLeftPx: number, bodyColor: string, fillBodyColor: string): string {
-        if (!isYellow) return bodyColor
-        const studRightPx = studLeftPx + studWidth
-        if (fillPx <= studLeftPx) return bodyColor           // fully blue
-        if (fillPx >= studRightPx) return fillBodyColor      // fully yellow
-        // Partially filled — hard stop gradient local to this stud
-        const localPct = ((fillPx - studLeftPx) / studWidth) * 100
-        return `linear-gradient(to right, ${fillBodyColor} ${localPct}%, ${bodyColor} ${localPct}%)`
+    // Given an element's left edge and width (both in button-relative px),
+    // return the fill overlay width % (0–100) local to that element
+    function overlayPct(elemLeftPx: number, elemWidthPx: number): number {
+        if (fillPx <= elemLeftPx) return 0
+        if (fillPx >= elemLeftPx + elemWidthPx) return 100
+        return ((fillPx - elemLeftPx) / elemWidthPx) * 100
     }
-
-    // Top cap gradient (spans full button width)
-    const topCapBackground = isYellow
-        ? `linear-gradient(to right, ${fillCapColor} ${progress}%, ${baseCapColor} ${progress}%)`
-        : baseCapColor
 
     return (
         <button
@@ -68,73 +58,98 @@ export function LegoProgressButton({
             className="relative w-[220px] h-[48px] border-2 border-black flex items-center justify-center overflow-visible"
             style={{ boxShadow: "inset 0 4px 0 rgba(0,0,0,0.2)" }}
         >
-            {/* base — always blue */}
+            {/* ── Face ── */}
+            {/* base */}
             <div className="absolute inset-0" style={{ backgroundColor: baseColor }} />
-
-            {/* progress fill — yellow advancing left to right */}
+            {/* fill overlay */}
             <div
-                className="absolute bottom-0 left-0 h-full"
-                style={{
-                    width: `${progress}%`,
-                    backgroundColor: fillColor,
-                    transition: "width 0.1s linear"
-                }}
+                className="absolute bottom-0 left-0 h-full overflow-hidden"
+                style={{ width: `${overlayPct(0, buttonWidth)}%`, transition }}
+            >
+                <div style={{ width: buttonWidth, height: "100%", backgroundColor: fillColor }} />
+            </div>
+
+            {/* ── Top cap ── */}
+            {/* base */}
+            <div
+                className="absolute top-0 left-0 w-full overflow-hidden"
+                style={{ height: topCapHeight, backgroundColor: baseCapColor, zIndex: 1 }}
             />
-
-            {/* top cap — lighter shade, gradient follows progress */}
+            {/* fill overlay */}
             <div
-                className="absolute top-0 left-0 w-full"
+                className="absolute top-0 left-0 overflow-hidden"
                 style={{
-                    height: `${topCapHeight}px`,
-                    background: topCapBackground,
-                    transition: "background 0.1s linear",
+                    height: topCapHeight,
+                    width: `${overlayPct(0, buttonWidth)}%`,
+                    transition,
                     zIndex: 1
                 }}
-            />
+            >
+                <div style={{ width: buttonWidth, height: topCapHeight, backgroundColor: fillCapColor }} />
+            </div>
 
-            {/* studs */}
+            {/* ── Studs ── */}
             <div
                 className="absolute flex justify-between w-[94%] px-2"
-                style={{ top: `${studTopOffset}px`, zIndex: 2 }}
+                style={{ top: studTopOffset, zIndex: 2 }}
             >
                 {[...Array(numStuds)].map((_, i) => {
-                    // Calculate this stud's left edge in button-relative px
                     const gap = usableWidth - numStuds * studWidth
                     const spacing = gap / (numStuds - 1)
                     const studLeft = studRowLeft + i * (studWidth + spacing)
-
-                    const bodyBg = studGradient(studLeft, baseColor, fillColor)
-                    const ovalBg = studGradient(studLeft, baseCapColor, fillCapColor)
+                    const bodyFillPct = overlayPct(studLeft, studWidth)
+                    const ovalFillPct = overlayPct(studLeft, studWidth)
 
                     return (
                         <div key={i} className="relative">
-                            {/* stud body */}
+                            {/* stud body base */}
                             <div
-                                className="border-2 border-black"
+                                className="border-2 border-black relative overflow-hidden"
                                 style={{
-                                    width: `${studWidth}px`,
-                                    height: `${studHeight}px`,
-                                    background: bodyBg,
+                                    width: studWidth,
+                                    height: studHeight,
+                                    backgroundColor: baseColor,
                                     boxShadow: "inset 0 1px 0 rgba(0,0,0,0.2)"
                                 }}
-                            />
-                            {/* stud oval top */}
+                            >
+                                {/* stud body fill overlay */}
+                                <div
+                                    className="absolute top-0 left-0 h-full"
+                                    style={{
+                                        width: `${bodyFillPct}%`,
+                                        backgroundColor: fillColor,
+                                        transition
+                                    }}
+                                />
+                            </div>
+
+                            {/* stud oval base */}
                             <div
-                                className="absolute left-0 rounded-full border-2 border-black"
+                                className="absolute left-0 rounded-full border-2 border-black overflow-hidden"
                                 style={{
-                                    width: `${studWidth}px`,
-                                    height: `${ovalHeight}px`,
-                                    top: `${(studHeight - ovalHeight) / 2 + ovalOffset}px`,
-                                    background: ovalBg,
+                                    width: studWidth,
+                                    height: ovalHeight,
+                                    top: (studHeight - ovalHeight) / 2 + ovalOffset,
+                                    backgroundColor: baseCapColor,
                                     zIndex: 3
                                 }}
-                            />
+                            >
+                                {/* stud oval fill overlay */}
+                                <div
+                                    className="absolute top-0 left-0 h-full"
+                                    style={{
+                                        width: `${ovalFillPct}%`,
+                                        backgroundColor: fillCapColor,
+                                        transition
+                                    }}
+                                />
+                            </div>
                         </div>
                     )
                 })}
             </div>
 
-            {/* label */}
+            {/* ── Label ── */}
             <div
                 className="text-white font-semibold"
                 style={{ transform: `translateY(${textOffset}px)`, zIndex: 4, position: "relative" }}
