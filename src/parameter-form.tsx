@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { Label } from "./assets/label"
 import * as SliderPrimitive from "@radix-ui/react-slider"
 import { Button } from "./assets/button"
@@ -60,14 +60,42 @@ export function ParameterForm({
         if (fileInputRef.current) fileInputRef.current.value = ""
     }, [handleFile])
 
-    // -------------------- Conversion Progress --------------------
+    // ── Conversion progress ──
     const [progress, setProgress] = useState(0)
     const [running, setRunning] = useState(false)
+    // draining = progress bar is animating back to 0 after job completes
+    const [draining, setDraining] = useState(false)
+    const drainIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+    // Kick off the drain animation: step progress from 100 → 0 over ~500ms
+    const startDrain = () => {
+        setDraining(true)
+        let current = 100
+        const steps = 20                  // number of steps
+        const stepSize = 100 / steps      // 5% per step
+        const stepMs = 500 / steps        // 25ms per step
+
+        if (drainIntervalRef.current) clearInterval(drainIntervalRef.current)
+
+        drainIntervalRef.current = setInterval(() => {
+            current -= stepSize
+            if (current <= 0) {
+                clearInterval(drainIntervalRef.current!)
+                drainIntervalRef.current = null
+                setProgress(0)
+                setRunning(false)
+                setDraining(false)
+            } else {
+                setProgress(current)
+            }
+        }, stepMs)
+    }
 
     const handleConvert = () => {
         if (!values.file) return
 
         setRunning(true)
+        setDraining(false)
         setProgress(0)
         setError(null)
 
@@ -81,7 +109,7 @@ export function ParameterForm({
                     while (!jobDone) {
                         await new Promise(r => setTimeout(r, 500))
                         const job = await getJob(job_id)
-                        setProgress(job.progress ?? 0)
+                        if (!draining) setProgress(job.progress ?? 0)
                         if (job.status === "complete" || job.status === "failed") {
                             jobDone = true
                         }
@@ -91,10 +119,8 @@ export function ParameterForm({
                     setError(err.message || "Job submission failed")
                 } finally {
                     setProgress(100)
-                    setTimeout(() => {
-                        setRunning(false)
-                        setProgress(0)
-                    }, 500)
+                    // Small pause at 100% so user sees Done!, then drain
+                    setTimeout(() => startDrain(), 500)
                 }
             })()
     }
@@ -244,7 +270,7 @@ export function ParameterForm({
             {/* -------------------- Convert Button -------------------- */}
             <LegoProgressButton
                 progress={progress}
-                running={running}
+                running={running || draining}
                 disabled={!values.file}
                 onClick={handleConvert}
             />
