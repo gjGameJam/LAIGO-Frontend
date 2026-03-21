@@ -72,6 +72,17 @@ export default function Laigo() {
                 <section className="output-wall" style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
                     <h2 className="section-title" style={{ marginTop: '1.8rem' }}>Output</h2>
 
+                    {/* Black separation line between top cap and body */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '1px',
+                        backgroundColor: '#000',
+                        zIndex: 3
+                    }} />
+
                     {/* Studs */}
                     <div className="output-wall-studs" style={{ top: `${studTopOffset}px`, zIndex: 2 }}>
                         {[...Array(26)].map((_, i) => (
