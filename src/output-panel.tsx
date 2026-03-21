@@ -70,28 +70,27 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
         <div className="flex flex-col h-full font-LegoThick">
 
             {/* Preview Area */}
-            <div
-                className="output-preview flex flex-1 flex-col items-center justify-center rounded-lg overflow-hidden text-center"
-            >
+            <div className="output-preview flex flex-1 flex-col items-center justify-center rounded-lg overflow-hidden text-center">
+
                 {status === "idle" && (
                     <div className="flex flex-col items-center gap-3 uppercase text-center">
-                        <ImageIcon className="size-10" style={{ color: "#aaa", opacity: 0.8 }} />
-                        <p className="text-sm" style={{ color: "#aaa" }}>Upload an image and click convert</p>
+                        <ImageIcon className="size-12" style={{ color: "#ffffff", opacity: 0.6 }} />
+                        <p className="text-lg font-semibold" style={{ color: "#ffffff" }}>Upload an image and click convert</p>
                     </div>
                 )}
 
                 {status === "running" && (
                     <div className="flex flex-col items-center gap-3 uppercase text-center">
-                        <div className="relative w-10 h-10">
-                            <div className="absolute inset-0 rounded-full border-2 border-[#333]" />
-                            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#888]" />
+                        <div className="relative w-12 h-12">
+                            <div className="absolute inset-0 rounded-full border-2 border-[#555]" />
+                            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#fff]" />
                         </div>
-                        <p className="text-xs" style={{ color: "#aaa" }}>Processing image…</p>
+                        <p className="text-lg font-semibold" style={{ color: "#ffffff" }}>Processing image…</p>
                     </div>
                 )}
 
                 {status === "failed" && (
-                    <p className="text-sm text-red-500 uppercase">{error}</p>
+                    <p className="text-lg font-semibold text-red-400 uppercase">{error}</p>
                 )}
 
                 {previewUrl && status === "complete" && (
@@ -105,7 +104,7 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                 )}
 
                 {!previewUrl && status === "complete" && (
-                    <p className="text-sm uppercase" style={{ color: "#00c038" }}>Job Complete</p>
+                    <p className="text-lg font-semibold uppercase" style={{ color: "#00c038" }}>Job Complete</p>
                 )}
             </div>
 
