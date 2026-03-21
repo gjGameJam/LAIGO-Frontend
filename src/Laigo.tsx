@@ -54,8 +54,46 @@ export default function Laigo() {
             >
                 {/* Input */}
                 <section className="parameter-frame">
-                    <div className="corner-bottom-left"></div>
-                    <div className="corner-bottom-right"></div>
+                    {/* Black separation line */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '1px',
+                        backgroundColor: '#000',
+                        zIndex: 3
+                    }} />
+
+                    {/* Input studs — dark blue matching frame */}
+                    <div style={{
+                        position: 'absolute',
+                        top: '-15px',
+                        left: '8px',
+                        right: '8px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        zIndex: 2,
+                        pointerEvents: 'none'
+                    }}>
+                        {[...Array(8)].map((_, i) => (
+                            <div key={i} className="relative">
+                                <div
+                                    className="border-2 border-black shadow-[inset_0_1px_0_rgba(0,0,0,0.2)]"
+                                    style={{ width: '20px', height: '11px', backgroundColor: '#1C3F6E' }}
+                                />
+                                <div
+                                    className="absolute left-0 rounded-full border-black border-2"
+                                    style={{
+                                        width: '20px',
+                                        height: '7px',
+                                        top: '-2px',
+                                        backgroundColor: '#2A5298'
+                                    }}
+                                />
+                            </div>
+                        ))}
+                    </div>
 
                     <h2 className="section-title">Input</h2>
                     <ParameterForm

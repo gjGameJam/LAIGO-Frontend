@@ -100,64 +100,24 @@
     --muted-foreground: 210 210 210;
     --muted: 80 80 80;
     --border: 100 100 100;
-    --background: 61 61 61;
+    --background: 28 63 110;
 
     position: relative;
-    border: 12px solid #654321;
-    padding: .9rem 2rem 2rem 2rem;
+    border: 2px solid #000;
+    border-top: 13px solid #2A5298;
+    outline: 2px solid #000;
+    outline-offset: -2px;
+    padding: 0.4rem 2rem 2rem 2rem;
     border-radius: 0;
-    box-shadow:
-      inset 0 0 0 6px #7b5229,
-      0 0 10px rgba(0, 0, 0, 0.25);
-    background-color: #545454;
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+    background-color: #1C3F6E;
     overflow: visible;
   }
 
-  /* Parameter form corners */
-  .parameter-frame::before {
-    content: '';
-    position: absolute;
-    top: -12px;
-    left: -12px;
-    width: 40px;
-    height: 40px;
-    background-color: #caaa36;
-    clip-path: polygon(0 0, 100% 0, 0 100%);
-    z-index: 1;
-  }
-
+  /* Remove corners — no pseudo-elements needed */
+  .parameter-frame::before,
   .parameter-frame::after {
-    content: '';
-    position: absolute;
-    top: -12px;
-    right: -12px;
-    width: 40px;
-    height: 40px;
-    background-color: #caaa36;
-    clip-path: polygon(0 0, 100% 0, 100% 100%);
-    z-index: 1;
-  }
-
-  .parameter-frame .corner-bottom-left {
-    position: absolute;
-    bottom: -12px;
-    left: -12px;
-    width: 40px;
-    height: 40px;
-    background-color: #caaa36;
-    clip-path: polygon(0 0, 0 100%, 100% 100%);
-    z-index: 1;
-  }
-
-  .parameter-frame .corner-bottom-right {
-    position: absolute;
-    bottom: -12px;
-    right: -12px;
-    width: 40px;
-    height: 40px;
-    background-color: #caaa36;
-    clip-path: polygon(100% 0, 0 100%, 100% 100%);
-    z-index: 1;
+    display: none;
   }
 
   /* LEGO-style buttons text */
