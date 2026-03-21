@@ -53,7 +53,7 @@ export default function Laigo() {
                 }}
             >
                 {/* Input */}
-                <section className="parameter-frame">
+                <section className="parameter-frame" style={{ display: "flex", flexDirection: "column", paddingTop: "0.4rem", paddingBottom: "0.5rem" }}>
                     {/* Black separation line */}
                     <div style={{
                         position: 'absolute',
@@ -96,13 +96,15 @@ export default function Laigo() {
                     </div>
 
                     <h2 className="section-title">Input</h2>
-                    <ParameterForm
-                        values={values}
-                        onChange={setValues}
-                        preview={inputPreview}
-                        onPreviewChange={setInputPreview}
-                        onJobCreated={(id) => setJobId(id)}
-                    />
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                        <ParameterForm
+                            values={values}
+                            onChange={setValues}
+                            preview={inputPreview}
+                            onPreviewChange={setInputPreview}
+                            onJobCreated={(id) => setJobId(id)}
+                        />
+                    </div>
                 </section>
 
                 {/* Output */}

@@ -126,7 +126,7 @@ export function ParameterForm({
     }
 
     return (
-        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-2.5 sm:gap-3">
+        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-2.5 sm:gap-3" style={{ flex: 1 }}>
             {/* -------------------- File Upload -------------------- */}
             <div className="flex flex-col gap-1.5">
                 <div
@@ -268,13 +268,15 @@ export function ParameterForm({
             </div>
 
             {/* -------------------- Convert Button -------------------- */}
-            <LegoProgressButton
-                progress={progress}
-                running={running || draining}
-                noFile={!values.file}
-                disabled={!values.file}
-                onClick={handleConvert}
-            />
+            <div style={{ marginTop: "1rem", paddingBottom: ".5rem" }}>
+                <LegoProgressButton
+                    progress={progress}
+                    running={running || draining}
+                    noFile={!values.file}
+                    disabled={!values.file}
+                    onClick={handleConvert}
+                />
+            </div>
 
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
         </form>
