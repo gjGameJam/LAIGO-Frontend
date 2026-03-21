@@ -25,14 +25,12 @@ export function LegoProgressButton({
     const textOffset = 6
     const numStuds = 6
 
-    // 220px outer width minus 2px border each side = 216px content width
     const buttonWidth = 216
     const studRowWidth = buttonWidth * 0.94
     const studRowPadding = 8
     const usableWidth = studRowWidth - studRowPadding * 2
     const studRowLeft = (buttonWidth - studRowWidth) / 2 + studRowPadding
 
-    // Grey when no file uploaded, blue when ready, yellow when running
     const baseColor = noFile ? "#6b7280" : "#2563eb"
     const baseCapColor = noFile ? "#9ca3af" : "#60a5fa"
     const fillColor = "#ffd400"
@@ -95,6 +93,17 @@ export function LegoProgressButton({
             >
                 <div style={{ width: buttonWidth, height: topCapHeight, backgroundColor: fillCapColor }} />
             </div>
+
+            {/* ── Separation line between top cap and face ── */}
+            <div
+                className="absolute left-0 w-full"
+                style={{
+                    top: `${topCapHeight - 1}px`,
+                    height: "1px",
+                    backgroundColor: "#000000",
+                    zIndex: 15
+                }}
+            />
 
             {/* ── Studs ── */}
             <div
