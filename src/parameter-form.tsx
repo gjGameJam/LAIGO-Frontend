@@ -188,7 +188,7 @@ export function ParameterForm({
                 <SliderPrimitive.Root
                     className="slider-root"
                     min={1}
-                    max={40}
+                    max={10}
                     step={1}
                     value={[values.intValue]}
                     onValueChange={([v]) => onChange({ ...values, intValue: v })}
@@ -200,7 +200,7 @@ export function ParameterForm({
                 </SliderPrimitive.Root>
                 <div className="flex justify-between text-[10px] text-muted-foreground">
                     <span>1</span>
-                    <span>40</span>
+                    <span>10</span>
                 </div>
             </div>
 
