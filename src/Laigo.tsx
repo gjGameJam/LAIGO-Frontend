@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { ParameterForm, FormValues } from "./parameter-form"
 import { OutputPanel } from "./output-panel"
 import { health } from "./api"
@@ -16,11 +16,26 @@ export default function Laigo() {
     })
     const [inputPreview, setInputPreview] = useState<string | null>(null)
     const [jobId, setJobId] = useState<string | null>(null)
+    const [panelBounds, setPanelBounds] = useState({ left: 0, right: window.innerWidth })
+    const panelContainerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         health()
             .then(() => setApiStatus("online"))
             .catch(() => setApiStatus("offline"))
+    }, [])
+
+    // Measure panel container on mount and resize
+    useEffect(() => {
+        const measure = () => {
+            if (panelContainerRef.current) {
+                const rect = panelContainerRef.current.getBoundingClientRect()
+                setPanelBounds({ left: rect.left, right: rect.right })
+            }
+        }
+        measure()
+        window.addEventListener("resize", measure)
+        return () => window.removeEventListener("resize", measure)
     }, [])
 
     const studHeight = 11
@@ -33,10 +48,11 @@ export default function Laigo() {
 
     return (
         <>
-            <LegoBrickCanvas />
+            <LegoBrickCanvas panelLeft={panelBounds.left} panelRight={panelBounds.right} />
             <main
                 style={{
-                    position: "relative", zIndex: 1,
+                    position: "relative",
+                    zIndex: 1,
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
@@ -48,6 +64,7 @@ export default function Laigo() {
                 <LaigoTitle status={apiStatus} />
 
                 <div
+                    ref={panelContainerRef}
                     style={{
                         display: "flex",
                         gap: "1rem",
@@ -130,7 +147,6 @@ export default function Laigo() {
                         <div className="output-wall-studs" style={{ top: `${studTopOffset}px`, zIndex: 2 }}>
                             {[...Array(26)].map((_, i) => (
                                 <div key={i} className="relative output-stud">
-                                    {/* Stud body */}
                                     <div
                                         className="border-2 border-black shadow-[inset_0_1px_0_rgba(0,0,0,0.2)]"
                                         style={{
@@ -139,7 +155,6 @@ export default function Laigo() {
                                             backgroundColor: studBodyColor
                                         }}
                                     />
-                                    {/* Stud top oval */}
                                     <div
                                         className="absolute left-0 rounded-full border-black border-2 z-10"
                                         style={{

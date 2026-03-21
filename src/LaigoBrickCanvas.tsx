@@ -11,33 +11,40 @@ interface Brick {
     topColor: string
 }
 
+interface LegoBrickCanvasProps {
+    panelLeft: number
+    panelRight: number
+}
+
 const LEGO_COLORS = [
     { body: "#e3000b", top: "#ff3333" },
     { body: "#1C3F6E", top: "#2A5298" },
     { body: "#007A1F", top: "#009624" },
     { body: "#ffd400", top: "#ffe866" },
     { body: "#ff6b00", top: "#ff8c33" },
-    { body: "#ffffff", top: "#e0e0e0" },
-    { body: "#5f5f5f", top: "#888888" },
+    { body: "#9b2d8e", top: "#c44db8" },
+    { body: "#e4008c", top: "#ff33aa" },
 ]
 
 const STUD_COUNTS = [1, 2, 2, 4, 4, 4]
 
-// Bias x toward sides: 60% chance of spawning in outer 25% on each side
-function sideWeightedX(canvasWidth: number): number {
+function sideWeightedX(canvasWidth: number, panelLeft: number, panelRight: number): number {
     const r = Math.random()
-    if (r < 0.3) return Math.random() * canvasWidth * 0.25               // left 25%
-    if (r < 0.6) return canvasWidth * 0.75 + Math.random() * canvasWidth * 0.25 // right 25%
-    return Math.random() * canvasWidth                                     // anywhere
+    const hasLeftZone = panelLeft > 20
+    const hasRightZone = panelRight < canvasWidth - 20
+
+    if (r < 0.15 && hasLeftZone) return Math.random() * panelLeft
+    if (r < 0.30 && hasRightZone) return panelRight + Math.random() * (canvasWidth - panelRight)
+    return Math.random() * canvasWidth
 }
 
-function randomBrick(canvasWidth: number, startOffscreen = false): Brick {
+function randomBrick(canvasWidth: number, panelLeft: number, panelRight: number, startOffscreen = false): Brick {
     const color = LEGO_COLORS[Math.floor(Math.random() * LEGO_COLORS.length)]
     const studs = STUD_COUNTS[Math.floor(Math.random() * STUD_COUNTS.length)]
     return {
-        x: sideWeightedX(canvasWidth),
+        x: sideWeightedX(canvasWidth, panelLeft, panelRight),
         y: startOffscreen ? -Math.random() * 600 - 60 : Math.random() * -2000,
-        speed: 0.3 + Math.random() * 0.45,  // 25% slower than original 0.4 + 0.6
+        speed: 0.3 + Math.random() * 0.45,
         rotation: Math.random() * Math.PI * 2,
         rotationSpeed: (Math.random() - 0.5) * 0.008,
         studs,
@@ -63,24 +70,19 @@ function drawBrick(ctx: CanvasRenderingContext2D, brick: Brick) {
     const halfW = brickW / 2
     const halfH = (BODY_H + CAP_H) / 2
 
-    // Body
     ctx.fillStyle = brick.color
     ctx.fillRect(-halfW, -halfH + CAP_H, brickW, BODY_H)
 
-    // Top cap
     ctx.fillStyle = brick.topColor
     ctx.fillRect(-halfW, -halfH, brickW, CAP_H)
 
-    // Separation line
     ctx.fillStyle = "#000"
     ctx.fillRect(-halfW, -halfH + CAP_H - 1, brickW, 1)
 
-    // Border
     ctx.strokeStyle = "#000"
     ctx.lineWidth = BORDER
     ctx.strokeRect(-halfW, -halfH, brickW, BODY_H + CAP_H)
 
-    // Studs
     const totalStudW = brick.studs * STUD_W + (brick.studs - 1) * STUD_GAP
     const studStartX = -totalStudW / 2
 
@@ -88,14 +90,12 @@ function drawBrick(ctx: CanvasRenderingContext2D, brick: Brick) {
         const sx = studStartX + i * (STUD_W + STUD_GAP) + STUD_W / 2
         const sy = -halfH - (CAP_H * 1.2) / 2
 
-        // Stud body
         ctx.fillStyle = brick.color
         ctx.strokeStyle = "#000"
         ctx.lineWidth = BORDER
         ctx.fillRect(sx - STUD_W / 2, sy - STUD_H / 2, STUD_W, STUD_H)
         ctx.strokeRect(sx - STUD_W / 2, sy - STUD_H / 2, STUD_W, STUD_H)
 
-        // Stud oval top
         ctx.fillStyle = brick.topColor
         ctx.beginPath()
         ctx.ellipse(sx, sy - STUD_H / 2 + 1, STUD_W / 2 - 1, 3, 0, 0, Math.PI * 2)
@@ -108,10 +108,16 @@ function drawBrick(ctx: CanvasRenderingContext2D, brick: Brick) {
     ctx.restore()
 }
 
-export function LegoBrickCanvas() {
+export function LegoBrickCanvas({ panelLeft, panelRight }: LegoBrickCanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const bricksRef = useRef<Brick[]>([])
     const rafRef = useRef<number>(0)
+    const panelRef = useRef({ left: panelLeft, right: panelRight })
+
+    // Keep panel bounds up to date without restarting the animation loop
+    useEffect(() => {
+        panelRef.current = { left: panelLeft, right: panelRight }
+    }, [panelLeft, panelRight])
 
     useEffect(() => {
         const canvas = canvasRef.current
@@ -122,14 +128,15 @@ export function LegoBrickCanvas() {
         const resize = () => {
             canvas.width = window.innerWidth
             canvas.height = window.innerHeight
+            // Respawn bricks with updated panel bounds on resize
+            const { left, right } = panelRef.current
+            bricksRef.current = Array.from({ length: 84 }, () =>
+                randomBrick(canvas.width, left, right, false)
+            )
         }
+
         resize()
         window.addEventListener("resize", resize)
-
-        // 56 * 1.5 = 84 bricks
-        bricksRef.current = Array.from({ length: 84 }, () =>
-            randomBrick(canvas.width, false)
-        )
 
         const loop = () => {
             const { width, height } = canvas
@@ -140,7 +147,8 @@ export function LegoBrickCanvas() {
                 brick.rotation += brick.rotationSpeed
 
                 if (brick.y > height + 80) {
-                    Object.assign(brick, randomBrick(width, true))
+                    const { left, right } = panelRef.current
+                    Object.assign(brick, randomBrick(width, left, right, true))
                     brick.y = -60
                 }
 
