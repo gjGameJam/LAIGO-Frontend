@@ -1,7 +1,7 @@
 interface LegoButtonProps {
     status: "idle" | "running" | "complete" | "failed";
     onClick: () => void;
-    disabled?: boolean; // optional extra disabling
+    disabled?: boolean;
     label?: string;
     icon?: React.ReactNode;
     studCount?: number;
@@ -18,21 +18,20 @@ export function LegoButton({
     const studHeight = 11;
     const studWidth = 20;
     const ovalHeight = 7;
-    const topCapHeight = 13;       // taller top strip
-    const studTopOffset = -2;      // studs slightly lower
-    const ovalOffset = -4;         // move ovals up (negative = up)
-    const textOffset = 6;          // move text lower
-    const borderLineColor = "#000000"; // black separation line
+    const topCapHeight = 13;
+    const studTopOffset = -2;
+    const ovalOffset = -4;
+    const textOffset = 6;
+    const borderLineColor = "#000000";
 
-    // Determine colors based on status
     let buttonBodyColor: string;
     let buttonTopColor: string;
     let buttonLabel: string;
 
     switch (status) {
         case "complete":
-            buttonBodyColor = "#009624"; // dark green
-            buttonTopColor = "#00c038";  // light green
+            buttonBodyColor = "#009624";
+            buttonTopColor = "#00c038";
             buttonLabel = label;
             break;
         case "failed":
@@ -41,13 +40,13 @@ export function LegoButton({
             buttonLabel = "Failed";
             break;
         default:
-            buttonBodyColor = "#b0b0b0"; // grey
-            buttonTopColor = "#d0d0d0";
-            buttonLabel = label;
+            // Match LegoProgressButton noFile grey colors
+            buttonBodyColor = "#6b7280";
+            buttonTopColor = "#9ca3af";
+            buttonLabel = "Convert Image";
             break;
     }
 
-    // Only allow click if job is complete and not additionally disabled
     const isClickable = status === "complete" && !disabled;
 
     return (
@@ -56,7 +55,7 @@ export function LegoButton({
             onClick={onClick}
             className={`relative w-[220px] h-[48px] border-2 border-black flex items-center justify-center
                         shadow-[inset_0_4px_0_rgba(0,0,0,0.2)]
-                        disabled:opacity-60 disabled:cursor-not-allowed rounded-none`}
+                        disabled:cursor-not-allowed rounded-none`}
         >
             {/* Top cap */}
             <div
@@ -91,12 +90,10 @@ export function LegoButton({
             >
                 {[...Array(studCount)].map((_, i) => (
                     <div key={i} className="relative">
-                        {/* Stud body */}
                         <div
                             className="border-2 border-black shadow-[inset_0_1px_0_rgba(0,0,0,0.2)]"
                             style={{ width: `${studWidth}px`, height: `${studHeight}px`, backgroundColor: buttonBodyColor }}
                         />
-                        {/* Stud top oval */}
                         <div
                             className="absolute left-0 w-[20px] rounded-full border-black border-2 z-10"
                             style={{
@@ -114,7 +111,7 @@ export function LegoButton({
                 className="flex items-center gap-2 z-20 text-white font-semibold"
                 style={{ transform: `translateY(${textOffset}px)` }}
             >
-                {icon && icon}
+                {status === "complete" && icon && icon}
                 {buttonLabel}
             </div>
         </button>
