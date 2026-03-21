@@ -271,6 +271,7 @@ export function ParameterForm({
             <LegoProgressButton
                 progress={progress}
                 running={running || draining}
+                noFile={!values.file}
                 disabled={!values.file}
                 onClick={handleConvert}
             />

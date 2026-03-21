@@ -3,6 +3,7 @@ import React from "react"
 interface LegoProgressButtonProps {
     progress: number
     running: boolean
+    noFile?: boolean
     onClick?: () => void
     disabled?: boolean
 }
@@ -10,6 +11,7 @@ interface LegoProgressButtonProps {
 export function LegoProgressButton({
     progress,
     running,
+    noFile = false,
     onClick,
     disabled
 }: LegoProgressButtonProps) {
@@ -23,20 +25,21 @@ export function LegoProgressButton({
     const textOffset = 6
     const numStuds = 6
 
-    const buttonWidth = 220
+    // 220px outer width minus 2px border each side = 216px content width
+    const buttonWidth = 216
     const studRowWidth = buttonWidth * 0.94
     const studRowPadding = 8
     const usableWidth = studRowWidth - studRowPadding * 2
     const studRowLeft = (buttonWidth - studRowWidth) / 2 + studRowPadding
 
-    const baseColor = "#2563eb"
-    const baseCapColor = "#60a5fa"
+    // Grey when no file uploaded, blue when ready, yellow when running
+    const baseColor = noFile ? "#6b7280" : "#2563eb"
+    const baseCapColor = noFile ? "#9ca3af" : "#60a5fa"
     const fillColor = "#ffd400"
     const fillCapColor = "#ffe866"
 
     const transition = "width 0.1s linear"
 
-    // fillPx is the x position of the vertical fill line across the button
     const fillPx = running ? (progress / 100) * buttonWidth : 0
     const barPct = (fillPx / buttonWidth) * 100
 
@@ -46,8 +49,6 @@ export function LegoProgressButton({
         studRowLeft + i * (studWidth + spacing)
     )
 
-    // How much of this stud the vertical fill line has crossed, 0-100%
-    // Same formula whether filling or emptying — the line just moves left or right
     function studFillPct(studLeft: number): number {
         const studRight = studLeft + studWidth
         if (fillPx <= studLeft) return 0
@@ -55,13 +56,20 @@ export function LegoProgressButton({
         return ((fillPx - studLeft) / studWidth) * 100
     }
 
+    const label = running
+        ? (progress >= 100 ? "Done!" : `${Math.round(progress)}%`)
+        : noFile ? "Upload Image" : "Convert"
+
     return (
         <button
             type="button"
             disabled={disabled || running}
             onClick={onClick}
             className="relative w-[220px] h-[48px] border-2 border-black flex items-center justify-center overflow-visible"
-            style={{ boxShadow: "inset 0 4px 0 rgba(0,0,0,0.2)" }}
+            style={{
+                boxShadow: "inset 0 4px 0 rgba(0,0,0,0.2)",
+                cursor: noFile ? "not-allowed" : "pointer"
+            }}
         >
             {/* ── Face base ── */}
             <div className="absolute inset-0" style={{ backgroundColor: baseColor }} />
@@ -139,7 +147,7 @@ export function LegoProgressButton({
                 className="text-white font-semibold"
                 style={{ transform: `translateY(${textOffset}px)`, zIndex: 4, position: "relative" }}
             >
-                {running ? (progress >= 100 ? "Done!" : `${Math.round(progress)}%`) : "Convert"}
+                {label}
             </div>
         </button>
     )
