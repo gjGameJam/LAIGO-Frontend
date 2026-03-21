@@ -35,6 +35,8 @@
 @layer base {
   body {
     font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
+    background-color: #545454;
+    color: #ffffff;
   }
 
   input,
@@ -56,11 +58,13 @@
   }
 
   .form-row label {
-    @apply text-xs font-medium text-gray-700 uppercase tracking-wide text-left;
+    @apply text-xs font-medium uppercase tracking-wide text-left;
+    color: #ffffff;
   }
 
   .form-row p {
-    @apply text-xs text-gray-500 leading-tight text-left;
+    @apply text-xs leading-tight text-left;
+    color: #d0d0d0;
   }
 }
 
@@ -75,6 +79,7 @@
     text-align: center;
     font-size: 2rem;
     letter-spacing: 0.03em;
+    color: #ffffff;
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 2px 0 rgba(0, 0, 0, 0.15);
   }
 
@@ -85,10 +90,17 @@
     text-transform: uppercase;
     text-align: center;
     margin-bottom: 0.5rem;
+    color: #ffffff;
   }
 
-  /* Main frame (Parameter Form) */
+  /* Override shadcn CSS variables inside the parameter frame for white text */
   .parameter-frame {
+    --foreground: 255 255 255;
+    --muted-foreground: 210 210 210;
+    --muted: 80 80 80;
+    --border: 100 100 100;
+    --background: 61 61 61;
+
     position: relative;
     border: 12px solid #654321;
     padding: 2rem;
@@ -96,7 +108,7 @@
     box-shadow:
       inset 0 0 0 6px #7b5229,
       0 0 10px rgba(0, 0, 0, 0.25);
-    background-color: #fff;
+    background-color: #3D3D3D;
     overflow: visible;
   }
 
@@ -202,14 +214,12 @@
     font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
   }
 
-  /* Output wall base (flat wall with top cap) */
+  /* Output wall base */
   .output-wall {
     position: relative;
-    background-color: #d1d1d1;
-    /* main wall color */
+    background-color: #00b32c;
     border-radius: 0;
     padding: 0;
-    /* remove padding, we’ll handle spacing inside */
     box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
@@ -222,8 +232,7 @@
     left: 0;
     width: 100%;
     height: 20px;
-    background-color: #e5e5e5;
-    /* lighter than body */
+    background-color: #00d94a;
     border-bottom: 1px solid #000;
     z-index: 0;
   }
@@ -235,13 +244,10 @@
     left: 0;
     display: flex;
     justify-content: space-between;
-    /* even spacing */
     width: 100%;
     padding: 0 8px;
-    /* optional horizontal offset */
     height: 100%;
     pointer-events: none;
-    /* studs don’t block interaction */
   }
 
   /* Each stud wrapper */

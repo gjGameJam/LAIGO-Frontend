@@ -62,32 +62,32 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
         }
     }, [jobId])
 
-    let brickColor = "#b0b0b0"
-    if (status === "complete" && downloadUrl) brickColor = "#00a000"
+    let brickColor = "#009624"
+    if (status === "complete" && downloadUrl) brickColor = "#009624"
     if (status === "failed") brickColor = "#d00000"
 
     return (
         <div className="flex flex-col h-full font-LegoThick">
 
             {/* Preview Area */}
-            <div className="flex flex-1 flex-col items-center justify-center rounded-lg border overflow-hidden
-                bg-[linear-gradient(45deg,#f8f8f8_25%,transparent_25%),linear-gradient(-45deg,#f8f8f8_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f8f8f8_75%),linear-gradient(-45deg,transparent_75%,#f8f8f8_75%)]
-                bg-[size:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] text-center">
-
+            <div
+                className="flex flex-1 flex-col items-center justify-center rounded-lg border border-[#2a2a2a] overflow-hidden text-center"
+                style={{ backgroundColor: "#1a1a1a" }}
+            >
                 {status === "idle" && (
                     <div className="flex flex-col items-center gap-3 uppercase text-center">
-                        <ImageIcon className="size-10 opacity-50" />
-                        <p className="text-sm">UPLOAD AN IMAGE AND CLICK CONVERT</p>
+                        <ImageIcon className="size-10" style={{ color: "#444", opacity: 0.6 }} />
+                        <p className="text-sm" style={{ color: "#444" }}>Upload an image and click convert</p>
                     </div>
                 )}
 
                 {status === "running" && (
                     <div className="flex flex-col items-center gap-3 uppercase text-center">
                         <div className="relative w-10 h-10">
-                            <div className="absolute inset-0 rounded-full border-2 border-muted-foreground/20" />
-                            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-foreground" />
+                            <div className="absolute inset-0 rounded-full border-2 border-[#333]" />
+                            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#888]" />
                         </div>
-                        <p className="text-xs">PROCESSING IMAGE…</p>
+                        <p className="text-xs" style={{ color: "#555" }}>Processing image…</p>
                     </div>
                 )}
 
@@ -106,7 +106,7 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                 )}
 
                 {!previewUrl && status === "complete" && (
-                    <p className="text-sm text-green-600 uppercase">JOB COMPLETE</p>
+                    <p className="text-sm uppercase" style={{ color: "#00c038" }}>Job Complete</p>
                 )}
             </div>
 
