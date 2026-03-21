@@ -22,7 +22,6 @@ export default function Laigo() {
             .catch(() => setApiStatus("offline"))
     }, [])
 
-    // Stud dimensions — matching LegoButton exactly
     const studHeight = 11
     const studWidth = 20
     const ovalHeight = 7
@@ -70,7 +69,7 @@ export default function Laigo() {
 
                 {/* Output */}
                 <section className="output-wall" style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
-                    <h2 className="section-title" style={{ marginTop: '1.8rem' }}>Output</h2>
+                    <h2 className="section-title">Output</h2>
 
                     {/* Black separation line between top cap and body */}
                     <div style={{
@@ -110,7 +109,7 @@ export default function Laigo() {
                         ))}
                     </div>
 
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: '0.6rem' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                         <OutputPanel jobId={jobId ?? undefined} />
                     </div>
                 </section>
