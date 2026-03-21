@@ -107,7 +107,7 @@
     border-top: 13px solid #2A5298;
     outline: 2px solid #000;
     outline-offset: -2px;
-    padding: 0.0rem 2rem 0.5rem 2rem;
+    padding: 0.4rem 2rem 0.5rem 2rem;
     border-radius: 0;
     box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
     background-color: #1C3F6E;
@@ -145,8 +145,33 @@
   }
 
   .slider-thumb {
-    @apply block h-4 w-4 rounded-full bg-white border border-gray-400 shadow-md;
-    @apply focus:outline-none focus:ring-2 focus:ring-blue-300;
+    @apply block focus:outline-none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    border: 2px solid #000000;
+    position: relative;
+    cursor: grab;
+    box-shadow: 0 3px 3px rgba(0, 0, 0, 0.25);
+  }
+
+  .slider-thumb::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background-color: transparent;
+    border: 2px solid #000000;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .slider-thumb:active {
+    cursor: grabbing;
   }
 
   /* Switch */
