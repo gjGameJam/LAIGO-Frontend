@@ -71,13 +71,12 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
 
             {/* Preview Area */}
             <div
-                className="flex flex-1 flex-col items-center justify-center rounded-lg border border-[#2a2a2a] overflow-hidden text-center"
-                style={{ backgroundColor: "#1a1a1a" }}
+                className="output-preview flex flex-1 flex-col items-center justify-center rounded-lg overflow-hidden text-center"
             >
                 {status === "idle" && (
                     <div className="flex flex-col items-center gap-3 uppercase text-center">
-                        <ImageIcon className="size-10" style={{ color: "#444", opacity: 0.6 }} />
-                        <p className="text-sm" style={{ color: "#444" }}>Upload an image and click convert</p>
+                        <ImageIcon className="size-10" style={{ color: "#aaa", opacity: 0.8 }} />
+                        <p className="text-sm" style={{ color: "#aaa" }}>Upload an image and click convert</p>
                     </div>
                 )}
 
@@ -87,7 +86,7 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                             <div className="absolute inset-0 rounded-full border-2 border-[#333]" />
                             <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#888]" />
                         </div>
-                        <p className="text-xs" style={{ color: "#555" }}>Processing image…</p>
+                        <p className="text-xs" style={{ color: "#aaa" }}>Processing image…</p>
                     </div>
                 )}
 

@@ -35,7 +35,7 @@
 @layer base {
   body {
     font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
-    background-color: #545454;
+    background-color: #3D3D3D;
     color: #ffffff;
   }
 
@@ -108,7 +108,7 @@
     box-shadow:
       inset 0 0 0 6px #7b5229,
       0 0 10px rgba(0, 0, 0, 0.25);
-    background-color: #3D3D3D;
+    background-color: #545454;
     overflow: visible;
   }
 
@@ -253,5 +253,11 @@
   /* Each stud wrapper */
   .output-stud {
     position: relative;
+  }
+
+  /* Output panel preview area */
+  .output-preview {
+    background-color: #545454;
+    border: 1px solid #444444;
   }
 }
