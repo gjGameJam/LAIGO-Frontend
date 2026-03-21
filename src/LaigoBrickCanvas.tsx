@@ -33,8 +33,8 @@ function sideWeightedX(canvasWidth: number, panelLeft: number, panelRight: numbe
     const hasLeftZone = panelLeft > 20
     const hasRightZone = panelRight < canvasWidth - 20
 
-    if (r < 0.15 && hasLeftZone) return Math.random() * panelLeft
-    if (r < 0.30 && hasRightZone) return panelRight + Math.random() * (canvasWidth - panelRight)
+    if (r < 0.1 && hasLeftZone) return Math.random() * panelLeft
+    if (r < 0.20 && hasRightZone) return panelRight + Math.random() * (canvasWidth - panelRight)
     return Math.random() * canvasWidth
 }
 
