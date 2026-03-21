@@ -22,6 +22,12 @@ export default function Laigo() {
             .catch(() => setApiStatus("offline"))
     }, [])
 
+    // Stud dimensions — matching LegoButton exactly
+    const studHeight = 11
+    const studWidth = 20
+    const ovalHeight = 7
+    const studTopOffset = -15
+    const ovalOffset = -4
     const studBodyColor = "#00b32c"
     const studOvalColor = "#00d94a"
 
@@ -63,31 +69,29 @@ export default function Laigo() {
                 </section>
 
                 {/* Output */}
-                <section className="output-wall" style={{ flex: 1, position: 'relative' }}>
-                    <h2 className="section-title" style={{ marginTop: '2.55rem' }}>Output</h2>
-
-                    {/* Top strip */}
-                    <div className="output-wall-top" />
+                <section className="output-wall" style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
+                    <h2 className="section-title" style={{ marginTop: '1.8rem' }}>Output</h2>
 
                     {/* Studs */}
-                    <div className="output-wall-studs">
+                    <div className="output-wall-studs" style={{ top: `${studTopOffset}px`, zIndex: 2 }}>
                         {[...Array(26)].map((_, i) => (
                             <div key={i} className="relative output-stud">
                                 {/* Stud body */}
                                 <div
                                     className="border-2 border-black shadow-[inset_0_1px_0_rgba(0,0,0,0.2)]"
                                     style={{
-                                        width: "20px",
-                                        height: "11px",
+                                        width: `${studWidth}px`,
+                                        height: `${studHeight}px`,
                                         backgroundColor: studBodyColor
                                     }}
                                 />
                                 {/* Stud top oval */}
                                 <div
-                                    className="absolute left-0 w-[20px] rounded-full border-black border-2 z-10"
+                                    className="absolute left-0 rounded-full border-black border-2 z-10"
                                     style={{
-                                        height: "7px",
-                                        top: `${(11 - 7) / 2 - 4}px`,
+                                        width: `${studWidth}px`,
+                                        height: `${ovalHeight}px`,
+                                        top: `${(studHeight - ovalHeight) / 2 + ovalOffset}px`,
                                         backgroundColor: studOvalColor
                                     }}
                                 />
@@ -95,7 +99,7 @@ export default function Laigo() {
                         ))}
                     </div>
 
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: '1rem' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: '0.6rem' }}>
                         <OutputPanel jobId={jobId ?? undefined} />
                     </div>
                 </section>
