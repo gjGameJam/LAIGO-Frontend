@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { ParameterForm, FormValues } from "./parameter-form"
 import { OutputPanel } from "./output-panel"
 import { health } from "./api"
+import { LaigoTitle } from "./LaigoTitle"
 
 export default function Laigo() {
     const [apiStatus, setApiStatus] = useState("checking...")
@@ -21,7 +22,6 @@ export default function Laigo() {
             .catch(() => setApiStatus("offline"))
     }, [])
 
-    // Lighter green — matches output-wall CSS colors
     const studBodyColor = "#00b32c"
     const studOvalColor = "#00d94a"
 
@@ -35,7 +35,8 @@ export default function Laigo() {
                 padding: "1rem"
             }}
         >
-            <h1 className="laigo-title">LAIGO: {apiStatus.toUpperCase()}</h1>
+            {/* ── Title ── */}
+            <LaigoTitle status={apiStatus} />
 
             <div
                 style={{
@@ -72,7 +73,6 @@ export default function Laigo() {
                     <div className="output-wall-studs">
                         {[...Array(26)].map((_, i) => (
                             <div key={i} className="relative output-stud">
-
                                 {/* Stud body */}
                                 <div
                                     className="border-2 border-black shadow-[inset_0_1px_0_rgba(0,0,0,0.2)]"
@@ -82,7 +82,6 @@ export default function Laigo() {
                                         backgroundColor: studBodyColor
                                     }}
                                 />
-
                                 {/* Stud top oval */}
                                 <div
                                     className="absolute left-0 w-[20px] rounded-full border-black border-2 z-10"
@@ -92,7 +91,6 @@ export default function Laigo() {
                                         backgroundColor: studOvalColor
                                     }}
                                 />
-
                             </div>
                         ))}
                     </div>
