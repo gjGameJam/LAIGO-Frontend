@@ -27,8 +27,8 @@ export default function Laigo() {
     const ovalHeight = 7
     const studTopOffset = -15
     const ovalOffset = -4
-    const studBodyColor = "#00b32c"
-    const studOvalColor = "#00d94a"
+    const studBodyColor = "#007A1F"
+    const studOvalColor = "#00A32A"
 
     return (
         <main
