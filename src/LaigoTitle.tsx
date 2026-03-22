@@ -12,10 +12,9 @@ const PAD_X = 24
 const PAD_Y = 14
 const SVG_H = TARGET_H + PAD_Y
 const BASELINE = Math.round((SVG_H - 750 * SCALE) / 2 + 750 * SCALE)
-const STROKE_W = 20         // thinner so strokes don't bleed into adjacent glyphs
-const LETTER_SPACING = 40  // extra font units between each character
+const STROKE_W = 20
+const LETTER_SPACING = 40
 
-// Full glyph path (all contours) — used for the black outline
 const GLYPH: Record<string, { d: string; w: number }> = {
     'L': { w: 481, d: 'M298 50Q340 50 368.0 81.0Q396 112 396 147Q396 200 339 200H288Q260 200 250 206Q235 214 235 244Q235 282 259 371Q260 372 260 373Q262 379 275 428Q302 527 328 625Q331 637 331 647Q331 699 273 699Q243 699 217 681Q188 660 178 625L109 370Q78 253 78 185Q78 50 198 50ZM352 250Q399 250 423.0 225.0Q447 200 447 161Q447 103 403 54Q355 0 285 0H185Q26 0 26 173Q26 246 57 363Q53 346 128 625Q144 683 192 718Q236 749 286 749Q337 749 364 718Q394 683 378 625L311 375Q284 278 288 250Q293 250 352 250Z' },
     'A': { w: 536, d: 'M356 450H306Q286 451 290 470Q311 547 356 547Q386 547 386 504Q386 489 381.0 470.0Q376 451 356 450ZM443 125Q433 90 405.5 70.5Q378 51 348 51Q290 51 290 103Q290 113 293 125L335 282Q340 300 323 300H258Q241 300 236 282L194 125Q185 90 157.5 70.5Q130 51 99 51Q41 51 41 103Q41 113 44 125L112 380Q152 531 204 605Q270 700 373 700H423Q543 700 543 565Q543 497 512 380L510 375ZM436 750H386Q161 750 64 387L-6 125Q-11 106 -11 89Q-11 47 17.0 24.0Q45 1 86 1Q135 1 177 30Q224 63 242 119Q238 103 238 89Q238 47 267 23Q293 1 334 1Q385 1 429 32Q477 67 493 125L528 256Q529 256 564 387Q595 504 595 576Q595 750 436 750Z' },
@@ -32,21 +31,25 @@ const GLYPH: Record<string, { d: string; w: number }> = {
     'F': { w: 479, d: 'M365 300H258Q241 300 236 282L194 125Q185 90 157.5 70.5Q130 51 99 51Q41 51 41 103Q41 113 44 125L110 375Q147 513 189 583Q260 700 373 700H473Q530 700 530 647Q530 612 502.0 581.0Q474 550 432 550H383Q340 550 319 527Q302 509 287 460Q284 451 295 450H406Q463 450 463 397Q463 362 435.0 331.0Q407 300 365 300ZM419 500Q489 500 537 554Q581 603 581 661Q581 700 557.0 725.0Q533 750 486 750H386Q247 750 160 620Q103 535 60 375Q61 375 -6 125Q-11 106 -11 88Q-11 47 18 23Q44 2 86 2Q137 2 180 32Q229 67 244 125L273 232Q277 250 295 250H352Q422 250 470 304Q514 353 514 411Q514 450 490.0 475.0Q466 500 419 500Z' },
 }
 
-// True counter holes (innermost subpaths with area ratio < 0.20 vs outer)
-// Drawn in red after white fill to restore background showing through
+// Inner shape contours — used as white punch to fill character interior
+const INNER_SHAPE: Record<string, string> = {
+    'L': 'M298 50Q340 50 368.0 81.0Q396 112 396 147Q396 200 339 200H288Q260 200 250 206Q235 214 235 244Q235 282 259 371Q260 372 260 373Q262 379 275 428Q302 527 328 625Q331 637 331 647Q331 699 273 699Q243 699 217 681Q188 660 178 625L109 370Q78 253 78 185Q78 50 198 50Z',
+    'A': 'M443 125Q433 90 405.5 70.5Q378 51 348 51Q290 51 290 103Q290 113 293 125L335 282Q340 300 323 300H258Q241 300 236 282L194 125Q185 90 157.5 70.5Q130 51 99 51Q41 51 41 103Q41 113 44 125L112 380Q152 531 204 605Q270 700 373 700H423Q543 700 543 565Q543 497 512 380L510 375Z',
+    'I': 'M193 125Q184 90 156.5 70.5Q129 51 99 51Q40 51 40 103Q40 113 43 125L177 625Q187 660 216 681Q242 699 272 699Q331 699 331 647Q331 637 327 625Z',
+    'G': 'M470 225Q458 179 413 128Q344 50 248 50H198Q78 50 78 185Q78 254 110 375Q152 529 203 603Q270 700 373 700H423Q504 700 540 662Q566 635 566 595Q566 584 564 575Q555 541 527.0 520.5Q499 500 468 500Q421 500 413 544Q403 550 379 550Q338 550 319 527Q292 493 260 375Q236 282 236 244Q236 203 271 200Q314 202 320 225Q337 289 337 288Q337 300 328 301Q283 309 283 356Q283 365 285 375Q295 411 324.0 430.5Q353 450 388 450Q432 450 463 423Q497 393 497 343Q497 323 490 300Z',
+    'O': 'M248 50H198Q78 50 78 185Q78 254 110 375Q152 529 203 603Q270 700 373 700H423Q543 700 543 565Q543 496 510 375Q469 221 418 147Q351 50 248 50Z',
+    'N': 'M443 125Q434 91 406.0 70.5Q378 50 348 50Q302 50 293 92L246 291Q245 296 242 294Q238 293 238 290L194 125Q184 90 156.5 70.5Q129 51 99 51Q40 51 40 103Q40 113 44 125L177 625Q187 659 215.0 679.5Q243 700 273 700Q319 700 328 658L375 459Q376 455 379 456Q382 457 383 460L427 625Q437 660 466 681Q492 699 522 699Q581 699 581 647Q581 637 577 625Z',
+    'E': 'M298 50Q340 50 368.0 81.0Q396 112 396 147Q396 200 339 200H289Q260 200 250 205Q234 213 234 241Q234 259 240 288L241 290Q243 299 255 300H365Q407 300 435.0 331.0Q463 362 463 397Q463 450 406 450H294Q283 451 286 460L287 462Q306 522 330 539Q346 550 383 550H432Q474 550 502.0 581.0Q530 612 530 647Q530 700 473 700H373Q270 700 203 603Q152 529 110 375Q78 254 78 185Q78 50 198 50Z',
+}
+
+// True counter holes — punched with specific colors after white fill
 const HOLES: Record<string, string> = {
     'A': 'M356 450H306Q286 451 290 470Q311 547 356 547Q386 547 386 504Q386 489 381.0 470.0Q376 451 356 450Z',
     'O': 'M357 549Q329 545 310 513Q288 476 260 375Q236 282 236 244Q236 206 264 201Q292 205 311 237Q333 274 360 375Q385 468 385 506Q385 544 357 549Z',
     'G': 'M470 225Q458 179 413 128Q344 50 248 50H198Q78 50 78 185Q78 254 110 375Q152 529 203 603Q270 700 373 700H423Q504 700 540 662Q566 635 566 595Q566 584 564 575Q555 541 527.0 520.5Q499 500 468 500Q421 500 413 544Q403 550 379 550Q338 550 319 527Q292 493 260 375Q236 282 236 244Q236 203 271 200Q314 202 320 225Q337 289 337 288Q337 300 328 301Q283 309 283 356Q283 365 285 375Q295 411 324.0 430.5Q353 450 388 450Q432 450 463 423Q497 393 497 343Q497 323 490 300Z',
 }
 
-// Holes that should be punched white (open shape of the letter)
-const WHITE_HOLES = new Set(['G'])
-// Holes that should be punched black (enclosed counters)
-const BLACK_HOLES = new Set(['A', 'O'])
-
-// Outer contour only (last subpath) — single closed path with no holes
-// Used for solid white fill since it has no inner contour to create transparency
+// Outer contour only (last subpath)
 const OUTER: Record<string, string> = {
     ':': 'M246 375Q321 414 337 475Q342 494 342 512Q342 553 314.5 576.0Q287 599 245 599Q195 599 151 568Q103 533 87 475Q84 461 84 449Q84 405 125 375Q50 336 34 275Q28 256 28 238Q28 197 56.0 174.0Q84 151 126 151Q176 151 220 182Q268 217 284 275Q287 289 287 301Q287 345 246 375Z',
     'A': 'M436 750H386Q161 750 64 387L-6 125Q-11 106 -11 89Q-11 47 17.0 24.0Q45 1 86 1Q135 1 177 30Q224 63 242 119Q238 103 238 89Q238 47 267 23Q293 1 334 1Q385 1 429 32Q477 67 493 125L528 256Q529 256 564 387Q595 504 595 576Q595 750 436 750Z',
@@ -86,42 +89,32 @@ export function LaigoTitle({ status }: LaigoTitleProps) {
 
             glyphEls.push(
                 <g key={i}>
-                    {/* Layer 1: white fill using OUTER contour only — solid base */}
-                    <path
-                        d={outerD ?? g.d}
-                        fill="white"
-                        stroke="none"
-                        transform={transform}
-                    />
-                    {/* Layer 2: punch counter holes */}
-                    {HOLES[ch] && (
-                        <path
-                            d={HOLES[ch]}
-                            fill={ch === 'G' ? "white" : "#e3000b"}
-                            stroke="none"
-                            transform={transform}
-                        />
+                    {/* Layer 1: yellow — outermost */}
+                    <path d={outerD ?? g.d} fill="#ffd400" stroke="#ffd400"
+                        strokeWidth={STROKE_W * 5} strokeLinejoin="round" transform={transform} />
+                    {/* Layer 2: black ring */}
+                    <path d={outerD ?? g.d} fill="black" stroke="black"
+                        strokeWidth={STROKE_W * 3} strokeLinejoin="round" transform={transform} />
+                    {/* Layer 3: black ring */}
+                    <path d={outerD ?? g.d} fill="black" stroke="black"
+                        strokeWidth={STROKE_W * 3} strokeLinejoin="round" transform={transform} />
+                    {/* Layer 4: white punch using inner shape — same trick as G, fills interior white */}
+                    {INNER_SHAPE[ch] ? (
+                        <path d={INNER_SHAPE[ch]} fill="white" stroke="none" transform={transform} />
+                    ) : (
+                        <path d={outerD ?? g.d} fill="white" stroke="none" transform={transform} />
                     )}
-                    {/* Layer 3: black outline stroke on top — reveals inner detail */}
-                    <path
-                        d={g.d}
-                        fill="none"
-                        stroke="black"
-                        strokeWidth={STROKE_W * 1.5}
-                        strokeLinejoin="round"
-                        fillRule="nonzero"
-                        transform={transform}
-                    />
-                    {/* Layer 4: yellow outermost ring on top */}
-                    <path
-                        d={g.d}
-                        fill="none"
-                        stroke="black"
-                        strokeWidth={STROKE_W * 3}
-                        strokeLinejoin="round"
-                        fillRule="nonzero"
-                        transform={transform}
-                    />
+                    {/* Layer 5: counter holes — O gets black, G already handled by INNER_SHAPE */}
+                    {ch === 'O' && HOLES['O'] && (
+                        <path d={HOLES['O']} fill="black" stroke="none" transform={transform} />
+                    )}
+                    {ch === 'A' && HOLES['A'] && (
+                        <path d={HOLES['A']} fill="black" stroke="none" transform={transform} />
+                    )}
+                    {/* Layer 6: thin inner detail stroke */}
+                    <path d={g.d} fill="none" stroke="black"
+                        strokeWidth={STROKE_W * 0.5} strokeLinejoin="round"
+                        fillRule="nonzero" transform={transform} />
                 </g>
             )
         }
