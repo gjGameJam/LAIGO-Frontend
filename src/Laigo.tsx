@@ -25,7 +25,6 @@ export default function Laigo() {
             .catch(() => setApiStatus("offline"))
     }, [])
 
-    // Measure panel container on mount and resize
     useEffect(() => {
         const measure = () => {
             if (panelContainerRef.current) {
@@ -49,54 +48,18 @@ export default function Laigo() {
     return (
         <>
             <LegoBrickCanvas panelLeft={panelBounds.left} panelRight={panelBounds.right} />
-            <main
-                style={{
-                    position: "relative",
-                    zIndex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "1rem",
-                    padding: "1rem"
-                }}
-            >
+            <main className="laigo-main">
                 {/* ── Title ── */}
                 <LaigoTitle status={apiStatus} />
 
-                <div
-                    ref={panelContainerRef}
-                    style={{
-                        display: "flex",
-                        gap: "1rem",
-                        width: "100%",
-                        maxWidth: "1200px",
-                        alignItems: "stretch"
-                    }}
-                >
-                    {/* Input */}
-                    <section className="parameter-frame" style={{ display: "flex", flexDirection: "column", paddingTop: "0.4rem", paddingBottom: "0.5rem" }}>
-                        {/* Black separation line */}
-                        <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '1px',
-                            backgroundColor: '#000',
-                            zIndex: 3
-                        }} />
+                <div ref={panelContainerRef} className="laigo-panels">
 
-                        {/* Input studs — dark blue matching frame */}
-                        <div style={{
-                            position: 'absolute',
-                            top: '-15px',
-                            left: '8px',
-                            right: '8px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            zIndex: 2,
-                            pointerEvents: 'none'
-                        }}>
+                    {/* Input */}
+                    <section className="parameter-frame">
+                        <div className="panel-sep-line" />
+
+                        {/* Input studs */}
+                        <div className="input-stud-row">
                             {[...Array(8)].map((_, i) => (
                                 <div key={i} className="relative">
                                     <div
@@ -105,19 +68,14 @@ export default function Laigo() {
                                     />
                                     <div
                                         className="absolute left-0 rounded-full border-black border-2"
-                                        style={{
-                                            width: '20px',
-                                            height: '7px',
-                                            top: '-2px',
-                                            backgroundColor: '#2A5298'
-                                        }}
+                                        style={{ width: '20px', height: '7px', top: '-2px', backgroundColor: '#2A5298' }}
                                     />
                                 </div>
                             ))}
                         </div>
 
                         <h2 className="section-title">Input</h2>
-                        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                        <div className="flex-col-fill">
                             <ParameterForm
                                 values={values}
                                 onChange={setValues}
@@ -129,19 +87,10 @@ export default function Laigo() {
                     </section>
 
                     {/* Output */}
-                    <section className="output-wall" style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
+                    <section className="output-wall output-wall-section">
                         <h2 className="section-title">Output</h2>
 
-                        {/* Black separation line between top cap and body */}
-                        <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '1px',
-                            backgroundColor: '#000',
-                            zIndex: 3
-                        }} />
+                        <div className="panel-sep-line" />
 
                         {/* Studs */}
                         <div className="output-wall-studs" style={{ top: `${studTopOffset}px`, zIndex: 2 }}>
@@ -149,11 +98,7 @@ export default function Laigo() {
                                 <div key={i} className="relative output-stud">
                                     <div
                                         className="border-2 border-black shadow-[inset_0_1px_0_rgba(0,0,0,0.2)]"
-                                        style={{
-                                            width: `${studWidth}px`,
-                                            height: `${studHeight}px`,
-                                            backgroundColor: studBodyColor
-                                        }}
+                                        style={{ width: `${studWidth}px`, height: `${studHeight}px`, backgroundColor: studBodyColor }}
                                     />
                                     <div
                                         className="absolute left-0 rounded-full border-black border-2 z-10"
@@ -168,11 +113,16 @@ export default function Laigo() {
                             ))}
                         </div>
 
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        <div className="flex-col-fill">
                             <OutputPanel jobId={jobId ?? undefined} />
                         </div>
                     </section>
                 </div>
+
+                {/* Disclaimer */}
+                <p className="laigo-disclaimer">
+                    LAIGO is an independent fan project and is not affiliated with, endorsed by, or sponsored by the LEGO Group. LEGO is a trademark of the LEGO Group.
+                </p>
             </main>
         </>
     )
