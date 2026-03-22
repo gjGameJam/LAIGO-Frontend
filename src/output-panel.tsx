@@ -108,7 +108,7 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                             <p className="text-sm font-bold uppercase text-left" style={{ color: "#00c038", fontFamily: "Nunito, sans-serif" }}>Next Steps</p>
                             {STEPS.map(({ icon: Icon, text }, i) => (
                                 <div key={i} className="flex items-start gap-2 text-left">
-                                    <span className="text-xs font-bold shrink-0" style={{ color: "#00c038" }}>{i + 1}.</span>
+                                    <span className="text-base font-bold shrink-0" style={{ color: "#00c038", fontFamily: "Nunito, sans-serif" }}>{i + 1}.</span>
                                     <Icon className="size-3.5 shrink-0 mt-0.5" style={{ color: "#aaa" }} />
                                     <p className="text-sm leading-tight" style={{ color: "#ccc", fontFamily: "Nunito, sans-serif" }}>{text}</p>
                                 </div>
@@ -132,13 +132,13 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                         <p className="text-sm font-bold uppercase" style={{ color: "#00c038", fontFamily: "Nunito, sans-serif" }}>Next Steps</p>
                         {STEPS.map(({ icon: Icon, text }, i) => (
                             <div key={i} className="flex items-start gap-2">
-                                <span className="text-xs font-bold shrink-0" style={{ color: "#00c038" }}>{i + 1}.</span>
+                                <span className="text-base font-bold shrink-0" style={{ color: "#00c038", fontFamily: "Nunito, sans-serif" }}>{i + 1}.</span>
                                 <Icon className="size-3.5 shrink-0 mt-0.5" style={{ color: "#aaa" }} />
                                 <p className="text-sm leading-tight" style={{ color: "#ccc", fontFamily: "Nunito, sans-serif" }}>{text}</p>
                             </div>
                         ))}
                         <a
-                            href="https://www.lego.com/en-us/pick-and-build/pick-a-brick?consent-modal=show"
+                            href="https://www.lego.com/en-us/pick-and-build/pick-a-brick?consent-modal=hide"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs underline"
