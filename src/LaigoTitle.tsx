@@ -40,6 +40,7 @@ const INNER_SHAPE: Record<string, string> = {
     'O': 'M248 50H198Q78 50 78 185Q78 254 110 375Q152 529 203 603Q270 700 373 700H423Q543 700 543 565Q543 496 510 375Q469 221 418 147Q351 50 248 50Z',
     'N': 'M443 125Q434 91 406.0 70.5Q378 50 348 50Q302 50 293 92L246 291Q245 296 242 294Q238 293 238 290L194 125Q184 90 156.5 70.5Q129 51 99 51Q40 51 40 103Q40 113 44 125L177 625Q187 659 215.0 679.5Q243 700 273 700Q319 700 328 658L375 459Q376 455 379 456Q382 457 383 460L427 625Q437 660 466 681Q492 699 522 699Q581 699 581 647Q581 637 577 625Z',
     'E': 'M298 50Q340 50 368.0 81.0Q396 112 396 147Q396 200 339 200H289Q260 200 250 205Q234 213 234 241Q234 259 240 288L241 290Q243 299 255 300H365Q407 300 435.0 331.0Q463 362 463 397Q463 450 406 450H294Q283 451 286 460L287 462Q306 522 330 539Q346 550 383 550H432Q474 550 502.0 581.0Q530 612 530 647Q530 700 473 700H373Q270 700 203 603Q152 529 110 375Q78 254 78 185Q78 50 198 50Z',
+    ':': 'M84 275Q93 310 122 331Q148 349 179 349Q237 349 237 297Q237 287 234 275Q224 240 196.5 220.5Q169 201 139 201Q81 201 81 253Q81 263 84 275Z M137 475Q147 510 176 531Q202 549 232 549Q290 549 290 497Q290 487 287 475Q278 440 250.5 420.5Q223 401 192 401Q134 401 134 453Q134 463 137 475Z',
 }
 
 // True counter holes — punched with specific colors after white fill
@@ -90,14 +91,14 @@ export function LaigoTitle({ status }: LaigoTitleProps) {
             glyphEls.push(
                 <g key={i}>
                     {/* Layer 1: yellow — outermost */}
-                    <path d={outerD ?? g.d} fill="#ffd400" stroke="#ffd400"
-                        strokeWidth={STROKE_W * 5} strokeLinejoin="round" transform={transform} />
+                    <path d={outerD ?? g.d} fill="#FFD700" stroke="#FFD700"
+                        strokeWidth={STROKE_W * 8} strokeLinejoin="round" transform={transform} />
                     {/* Layer 2: black ring */}
                     <path d={outerD ?? g.d} fill="black" stroke="black"
-                        strokeWidth={STROKE_W * 3} strokeLinejoin="round" transform={transform} />
+                        strokeWidth={STROKE_W * 2} strokeLinejoin="round" transform={transform} />
                     {/* Layer 3: black ring */}
                     <path d={outerD ?? g.d} fill="black" stroke="black"
-                        strokeWidth={STROKE_W * 3} strokeLinejoin="round" transform={transform} />
+                        strokeWidth={STROKE_W * 2} strokeLinejoin="round" transform={transform} />
                     {/* Layer 4: white punch using inner shape — same trick as G, fills interior white */}
                     {INNER_SHAPE[ch] ? (
                         <path d={INNER_SHAPE[ch]} fill="white" stroke="none" transform={transform} />
