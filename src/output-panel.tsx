@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { DownloadIcon, ImageIcon } from "lucide-react"
+import { DownloadIcon, ImageIcon, PackageIcon, ShoppingCartIcon, HammerIcon } from "lucide-react"
 import { getJob, getDownloadUrl } from "./api"
 import { LegoButton } from "./LegoButton"
 
@@ -9,6 +9,13 @@ interface OutputPanelProps {
     jobId?: string
     outputFilename?: string
 }
+
+const STEPS = [
+    { icon: DownloadIcon, text: "Download the zip file" },
+    { icon: PackageIcon, text: "Open the zip — it contains piece list and instructions folders" },
+    { icon: ShoppingCartIcon, text: "Go to Pick a Brick, upload list(s), order pieces, and wait for delivery" },
+    { icon: HammerIcon, text: "Follow the instructions and enjoy!" },
+]
 
 export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
     const [status, setStatus] = useState<"idle" | "running" | "complete" | "failed">("idle")
@@ -62,10 +69,6 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
         }
     }, [jobId])
 
-    let brickColor = "#009624"
-    if (status === "complete" && downloadUrl) brickColor = "#009624"
-    if (status === "failed") brickColor = "#d00000"
-
     return (
         <div className="flex flex-col h-full font-LegoThick">
 
@@ -94,17 +97,56 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                 )}
 
                 {previewUrl && status === "complete" && (
-                    <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-full h-full flex flex-col">
                         <img
                             src={previewUrl}
                             alt={outputFilename ?? "OUTPUT PREVIEW"}
-                            className="max-h-full max-w-full object-contain p-4"
+                            className="flex-1 max-h-full max-w-full object-contain p-4"
                         />
+                        {/* Next steps overlay at bottom */}
+                        <div className="px-4 pb-3 flex flex-col gap-1.5">
+                            <p className="text-sm font-bold uppercase text-left" style={{ color: "#00c038", fontFamily: "Nunito, sans-serif" }}>Next Steps</p>
+                            {STEPS.map(({ icon: Icon, text }, i) => (
+                                <div key={i} className="flex items-start gap-2 text-left">
+                                    <span className="text-xs font-bold shrink-0" style={{ color: "#00c038" }}>{i + 1}.</span>
+                                    <Icon className="size-3.5 shrink-0 mt-0.5" style={{ color: "#aaa" }} />
+                                    <p className="text-sm leading-tight" style={{ color: "#ccc", fontFamily: "Nunito, sans-serif" }}>{text}</p>
+                                </div>
+                            ))}
+                            <a
+                                href="https://www.lego.com/en-us/pick-and-build/pick-a-brick?consent-modal=show"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs underline mt-0.5 text-left"
+                                style={{ color: "#60a5fa" }}
+                            >
+                                lego.com/pick-a-brick →
+                            </a>
+                        </div>
                     </div>
                 )}
 
                 {!previewUrl && status === "complete" && (
-                    <p className="text-lg font-semibold uppercase" style={{ color: "#00c038" }}>Job Complete</p>
+                    <div className="flex flex-col gap-3 px-6 py-4 text-left w-full">
+                        <p className="text-lg font-semibold uppercase text-center" style={{ color: "#00c038" }}>Job Complete</p>
+                        <p className="text-sm font-bold uppercase" style={{ color: "#00c038", fontFamily: "Nunito, sans-serif" }}>Next Steps</p>
+                        {STEPS.map(({ icon: Icon, text }, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                                <span className="text-xs font-bold shrink-0" style={{ color: "#00c038" }}>{i + 1}.</span>
+                                <Icon className="size-3.5 shrink-0 mt-0.5" style={{ color: "#aaa" }} />
+                                <p className="text-sm leading-tight" style={{ color: "#ccc", fontFamily: "Nunito, sans-serif" }}>{text}</p>
+                            </div>
+                        ))}
+                        <a
+                            href="https://www.lego.com/en-us/pick-and-build/pick-a-brick?consent-modal=show"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs underline"
+                            style={{ color: "#60a5fa" }}
+                        >
+                            lego.com/pick-a-brick →
+                        </a>
+                    </div>
                 )}
             </div>
 
