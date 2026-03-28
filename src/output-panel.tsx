@@ -84,11 +84,13 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
 
                 {status === "running" && (
                     <div className="flex flex-col items-center gap-3 uppercase text-center">
-                        <div className="relative w-12 h-12">
-                            <div className="absolute inset-0 rounded-full border-2 border-[#555]" />
-                            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#fff]" />
+                        <div className="w-110 h-110">
+                            <img
+                                src="./public/brickStackNobg.gif"
+                                alt="Loading..."
+                                className="w-full h-full object-contain"
+                            />
                         </div>
-                        <p className="text-lg font-semibold" style={{ color: "#ffffff" }}>Processing image…</p>
                     </div>
                 )}
 

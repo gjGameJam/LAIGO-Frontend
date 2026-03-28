@@ -34,13 +34,20 @@ export function LegoButton({
             buttonTopColor = "#00c038";
             buttonLabel = label;
             break;
+
         case "failed":
             buttonBodyColor = "#d00000";
             buttonTopColor = "#ff4d4d";
             buttonLabel = "Failed";
             break;
-        default:
-            // Match LegoProgressButton noFile grey colors
+
+        case "running":
+            buttonBodyColor = "#6b7280";
+            buttonTopColor = "#9ca3af";
+            buttonLabel = "Converting...";
+            break;
+
+        default: // idle
             buttonBodyColor = "#6b7280";
             buttonTopColor = "#9ca3af";
             buttonLabel = "Convert Image";
