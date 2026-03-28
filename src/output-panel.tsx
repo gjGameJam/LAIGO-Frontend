@@ -86,7 +86,7 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                     <div className="flex flex-col items-center gap-3 uppercase text-center">
                         <div className="w-110 h-110">
                             <img
-                                src="./public/brickStackNobg.gif"
+                                src="/brickStackNobg.gif"
                                 alt="Loading..."
                                 className="w-full h-full object-contain"
                             />
