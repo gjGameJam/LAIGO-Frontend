@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef } from "react"
 import { Label } from "./assets/label"
 import * as SliderPrimitive from "@radix-ui/react-slider"
 import { Button } from "./assets/button"
 import { ImageIcon, UploadIcon, XIcon } from "lucide-react"
-import { submitJob, buildFormData } from "./api"
+import { submitJob, buildFormData, getJob } from "./api"
 import { LegoProgressButton } from "./LegoProgressButton"
-import { getJob } from "./api"
 
 export interface FormValues {
     file: File | null
@@ -33,8 +32,15 @@ export function ParameterForm({
     onJobCreated,
 }: ParameterFormProps) {
     const [isDragging, setIsDragging] = useState(false)
+    const [progress, setProgress] = useState(0)
+    const [running, setRunning] = useState(false)
+    const [draining, setDraining] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const drainIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+    // Adjustable spacing between top-level fields
+    const formGap = "gap-[20px]"
 
     const handleFile = useCallback(
         (file: File | null) => {
@@ -43,7 +49,7 @@ export function ParameterForm({
             if (file) onPreviewChange(URL.createObjectURL(file))
             else onPreviewChange(null)
         },
-        [values, onChange, onPreviewChange],
+        [values, onChange, onPreviewChange]
     )
 
     const handleDrop = useCallback(
@@ -52,7 +58,7 @@ export function ParameterForm({
             setIsDragging(false)
             handleFile(e.dataTransfer.files?.[0] ?? null)
         },
-        [handleFile],
+        [handleFile]
     )
 
     const removeFile = useCallback(() => {
@@ -60,20 +66,12 @@ export function ParameterForm({
         if (fileInputRef.current) fileInputRef.current.value = ""
     }, [handleFile])
 
-    // ── Conversion progress ──
-    const [progress, setProgress] = useState(0)
-    const [running, setRunning] = useState(false)
-    // draining = progress bar is animating back to 0 after job completes
-    const [draining, setDraining] = useState(false)
-    const drainIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-    // Kick off the drain animation: step progress from 100 → 0 over ~500ms
     const startDrain = () => {
         setDraining(true)
         let current = 100
-        const steps = 20                  // number of steps
-        const stepSize = 100 / steps      // 5% per step
-        const stepMs = 500 / steps        // 25ms per step
+        const steps = 20
+        const stepSize = 100 / steps
+        const stepMs = 500 / steps
 
         if (drainIntervalRef.current) clearInterval(drainIntervalRef.current)
 
@@ -107,7 +105,7 @@ export function ParameterForm({
 
                     let jobDone = false
                     while (!jobDone) {
-                        await new Promise(r => setTimeout(r, 500))
+                        await new Promise((r) => setTimeout(r, 500))
                         const job = await getJob(job_id)
                         if (!draining) setProgress(job.progress ?? 0)
                         if (job.status === "complete" || job.status === "failed") {
@@ -119,36 +117,57 @@ export function ParameterForm({
                     setError(err.message || "Job submission failed")
                 } finally {
                     setProgress(100)
-                    // Small pause at 100% so user sees Done!, then drain
                     setTimeout(() => startDrain(), 500)
                 }
             })()
     }
 
     return (
-        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-2.5 sm:gap-3" style={{ flex: 1 }}>
+        <form
+            onSubmit={(e) => e.preventDefault()}
+            className={`flex flex-col ${formGap}`}
+            style={{ flex: 1 }}
+        >
             {/* -------------------- File Upload -------------------- */}
             <div className="flex flex-col gap-1.5">
                 <div
                     role="button"
                     tabIndex={0}
                     onDrop={handleDrop}
-                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-                    onDragLeave={(e) => { e.preventDefault(); setIsDragging(false) }}
+                    onDragOver={(e) => {
+                        e.preventDefault()
+                        setIsDragging(true)
+                    }}
+                    onDragLeave={(e) => {
+                        e.preventDefault()
+                        setIsDragging(false)
+                    }}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/20 hover:border-primary/40 hover:bg-muted/40"} ${preview ? "p-1.5 sm:p-2" : "px-3 py-3 sm:px-4 sm:py-4"}`}
+                    className={`relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${isDragging
+                        ? "border-primary bg-primary/5"
+                        : "border-muted-foreground/20 hover:border-primary/40 hover:bg-muted/40"
+                        } ${preview ? "p-1.5 sm:p-2" : "px-3 py-3 sm:px-4 sm:py-4"}`}
                 >
                     {preview ? (
                         <div className="relative w-full">
-                            <img src={preview} alt="Preview" className="mx-auto max-h-16 rounded-md object-contain sm:max-h-24" />
+                            <img
+                                src={preview}
+                                alt="Preview"
+                                className="mx-auto max-h-16 rounded-md object-contain sm:max-h-24"
+                            />
                             <div className="mt-1.5 flex items-center justify-between px-0.5">
-                                <span className="truncate text-xs text-muted-foreground">{values.file?.name}</span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                    {values.file?.name}
+                                </span>
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
                                     className="size-6"
-                                    onClick={(e) => { e.stopPropagation(); removeFile() }}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        removeFile()
+                                    }}
                                     aria-label="Remove image"
                                 >
                                     <XIcon className="size-3.5" />
@@ -158,10 +177,18 @@ export function ParameterForm({
                     ) : (
                         <>
                             <div className="flex size-8 items-center justify-center rounded-full bg-muted">
-                                {isDragging ? <UploadIcon className="size-4 text-primary" /> : <ImageIcon className="size-4 text-muted-foreground" />}
+                                {isDragging ? (
+                                    <UploadIcon className="size-4 text-primary" />
+                                ) : (
+                                    <ImageIcon className="size-4 text-muted-foreground" />
+                                )}
                             </div>
-                            <p className="mt-1.5 text-xs font-medium text-foreground">Drop Image or Click to Browse</p>
-                            <p className="text-[11px] text-muted-foreground">PNG, JPG, GIF, WebP</p>
+                            <p className="mt-1.5 text-xs font-medium text-foreground">
+                                Drop Image or Click to Browse
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                                PNG, JPG, GIF, WebP
+                            </p>
                         </>
                     )}
                     <input
@@ -191,29 +218,21 @@ export function ParameterForm({
                 </div>
 
                 <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground text-right">
-                        1
-                    </span>
-
+                    <span className="text-[10px] text-muted-foreground text-right">1</span>
                     <SliderPrimitive.Root
-                        className="slider-root w-full max-w-[90%] justify-self-center"
+                        className="slider-root w-full max-w-[100%] justify-self-center"
                         min={1}
                         max={10}
                         step={1}
                         value={[values.intValue]}
-                        onValueChange={([v]) =>
-                            onChange({ ...values, intValue: v })
-                        }
+                        onValueChange={([v]) => onChange({ ...values, intValue: v })}
                     >
                         <SliderPrimitive.Track className="slider-track">
                             <SliderPrimitive.Range className="slider-range" />
                         </SliderPrimitive.Track>
                         <SliderPrimitive.Thumb className="slider-thumb" />
                     </SliderPrimitive.Root>
-
-                    <span className="text-[10px] text-muted-foreground">
-                        10
-                    </span>
+                    <span className="text-[10px] text-muted-foreground">10</span>
                 </div>
             </div>
 
@@ -227,7 +246,12 @@ export function ParameterForm({
                 </div>
                 <button
                     type="button"
-                    onClick={() => onChange({ ...values, mosaicType: values.mosaicType === "3d" ? "2d" : "3d" })}
+                    onClick={() =>
+                        onChange({
+                            ...values,
+                            mosaicType: values.mosaicType === "3d" ? "2d" : "3d",
+                        })
+                    }
                     className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${values.mosaicType === "3d"
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-muted-foreground/30 bg-muted text-foreground"
@@ -250,21 +274,15 @@ export function ParameterForm({
                     </div>
 
                     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground text-right">
-                            1
-                        </span>
-
+                        <span className="text-[10px] text-muted-foreground text-right">1</span>
                         <SliderPrimitive.Root
-                            className="slider-root w-full max-w-[90%] justify-self-center"
+                            className="slider-root w-full max-w-[100%] justify-self-center"
                             min={1}
                             max={100}
                             step={1}
                             value={[values.floatValue]}
                             onValueChange={([v]) =>
-                                onChange({
-                                    ...values,
-                                    floatValue: Math.round(v),
-                                })
+                                onChange({ ...values, floatValue: Math.round(v) })
                             }
                         >
                             <SliderPrimitive.Track className="slider-track">
@@ -272,10 +290,7 @@ export function ParameterForm({
                             </SliderPrimitive.Track>
                             <SliderPrimitive.Thumb className="slider-thumb" />
                         </SliderPrimitive.Root>
-
-                        <span className="text-[10px] text-muted-foreground">
-                            100
-                        </span>
+                        <span className="text-[10px] text-muted-foreground">100</span>
                     </div>
                 </div>
             )}
@@ -284,13 +299,20 @@ export function ParameterForm({
             <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-2 py-1.5 sm:px-3 sm:py-2">
                 <div className="flex flex-col gap-0.5">
                     <Label htmlFor="bool-toggle">Framed</Label>
-                    <p className="text-[11px] text-muted-foreground leading-tight">Add Frame to Mosaic Set</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                        Add Frame to Mosaic Set
+                    </p>
                 </div>
                 <button
                     type="button"
                     id="bool-toggle"
-                    onClick={() => onChange({ ...values, boolValue: !values.boolValue })}
-                    className={`inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${values.boolValue ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30 bg-muted text-foreground"}`}
+                    onClick={() =>
+                        onChange({ ...values, boolValue: !values.boolValue })
+                    }
+                    className={`inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${values.boolValue
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-muted-foreground/30 bg-muted text-foreground"
+                        }`}
                 >
                     {values.boolValue ? "True" : "False"}
                 </button>
