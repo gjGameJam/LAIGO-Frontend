@@ -93,7 +93,24 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                 )}
 
                 {status === "failed" && (
-                    <p className="text-lg font-semibold text-red-400 uppercase">{error}</p>
+                    <div className="flex flex-col items-center gap-4 w-full px-4 py-6 bg-[#2b1b1b] rounded-md border border-red-500">
+                        <p className="text-lg font-semibold text-red-400 uppercase">{"Error: " + error}</p>
+
+                        <div className="flex flex-col gap-1 p-3 bg-red-900/20 rounded-md w-full">
+                            <p className="text-sm font-medium text-red-300 uppercase">Failed To Fetch</p>
+                            <p className="text-xs text-red-200">Backend Service Went Down Temporarily. Please try again.</p>
+                        </div>
+
+                        <div className="flex flex-col gap-1 p-3 bg-red-900/20 rounded-md w-full">
+                            <p className="text-sm font-medium text-red-300 uppercase">Unsupported File Type</p>
+                            <p className="text-xs text-red-200">Only PNG, JPG, GIF, and WebP files are supported. Please check your image and try again.</p>
+                        </div>
+
+                        <div className="flex flex-col gap-1 p-3 bg-red-900/20 rounded-md w-full">
+                            <p className="text-sm font-medium text-red-300 uppercase">Unexpected Error</p>
+                            <p className="text-xs text-red-200">An unexpected error occurred. Reach out to support if this is keeps happening.</p>
+                        </div>
+                    </div>
                 )}
 
                 {previewUrl && status === "complete" && (

@@ -277,8 +277,6 @@ export function ParameterForm({
                     onClick={handleConvert}
                 />
             </div>
-
-            {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
         </form>
     )
 }
