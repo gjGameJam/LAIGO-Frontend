@@ -178,29 +178,42 @@ export function ParameterForm({
             <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
                     <div className="flex flex-col">
-                        <Label htmlFor="int-input" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                             Block Width
                         </Label>
-                        <p className="text-[11px] text-muted-foreground leading-tight">Blocks are 16 studs wide</p>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                            Blocks are 16 studs wide
+                        </p>
                     </div>
-                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono font-sm tabular-nums text-foreground">{values.intValue}</span>
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono tabular-nums">
+                        {values.intValue}
+                    </span>
                 </div>
-                <SliderPrimitive.Root
-                    className="slider-root"
-                    min={1}
-                    max={10}
-                    step={1}
-                    value={[values.intValue]}
-                    onValueChange={([v]) => onChange({ ...values, intValue: v })}
-                >
-                    <SliderPrimitive.Track className="slider-track">
-                        <SliderPrimitive.Range className="slider-range" />
-                    </SliderPrimitive.Track>
-                    <SliderPrimitive.Thumb className="slider-thumb" />
-                </SliderPrimitive.Root>
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>1</span>
-                    <span>10</span>
+
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground text-right">
+                        1
+                    </span>
+
+                    <SliderPrimitive.Root
+                        className="slider-root w-full max-w-[90%] justify-self-center"
+                        min={1}
+                        max={10}
+                        step={1}
+                        value={[values.intValue]}
+                        onValueChange={([v]) =>
+                            onChange({ ...values, intValue: v })
+                        }
+                    >
+                        <SliderPrimitive.Track className="slider-track">
+                            <SliderPrimitive.Range className="slider-range" />
+                        </SliderPrimitive.Track>
+                        <SliderPrimitive.Thumb className="slider-thumb" />
+                    </SliderPrimitive.Root>
+
+                    <span className="text-[10px] text-muted-foreground">
+                        10
+                    </span>
                 </div>
             </div>
 
@@ -228,25 +241,41 @@ export function ParameterForm({
             {values.mosaicType === "3d" && (
                 <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
-                        <Label htmlFor="float-input" className="text-xs font-sm text-muted-foreground uppercase tracking-wide">% of Background Color</Label>
-                        <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono font-sm tabular-nums text-foreground">{values.floatValue.toFixed(1)}</span>
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                            % of Background Color
+                        </Label>
+                        <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono tabular-nums">
+                            {Math.round(values.floatValue)}
+                        </span>
                     </div>
-                    <SliderPrimitive.Root
-                        className="slider-root"
-                        min={1}
-                        max={100}
-                        step={0.1}
-                        value={[values.floatValue]}
-                        onValueChange={([v]) => onChange({ ...values, floatValue: parseFloat(v.toFixed(1)) })}
-                    >
-                        <SliderPrimitive.Track className="slider-track">
-                            <SliderPrimitive.Range className="slider-range" />
-                        </SliderPrimitive.Track>
-                        <SliderPrimitive.Thumb className="slider-thumb" />
-                    </SliderPrimitive.Root>
-                    <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>1</span>
-                        <span>100</span>
+
+                    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground text-right">
+                            1
+                        </span>
+
+                        <SliderPrimitive.Root
+                            className="slider-root w-full max-w-[90%] justify-self-center"
+                            min={1}
+                            max={100}
+                            step={1}
+                            value={[values.floatValue]}
+                            onValueChange={([v]) =>
+                                onChange({
+                                    ...values,
+                                    floatValue: Math.round(v),
+                                })
+                            }
+                        >
+                            <SliderPrimitive.Track className="slider-track">
+                                <SliderPrimitive.Range className="slider-range" />
+                            </SliderPrimitive.Track>
+                            <SliderPrimitive.Thumb className="slider-thumb" />
+                        </SliderPrimitive.Root>
+
+                        <span className="text-[10px] text-muted-foreground">
+                            100
+                        </span>
                     </div>
                 </div>
             )}
