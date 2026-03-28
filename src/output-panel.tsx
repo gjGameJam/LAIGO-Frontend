@@ -93,22 +93,37 @@ export function OutputPanel({ jobId, outputFilename }: OutputPanelProps) {
                 )}
 
                 {status === "failed" && (
-                    <div className="flex flex-col items-center gap-4 w-full px-4 py-6 bg-[#2b1b1b] rounded-md border border-red-500">
-                        <p className="text-lg font-semibold text-red-400 uppercase">{"Error: " + error}</p>
+                    <div className="flex flex-col items-start gap-4 w-full px-4 py-6">
+                        <p className="text-2xl font-semibold uppercase" style={{ color: "#ff6b6b", fontFamily: "Nunito, sans-serif" }}>
+                            {"Error: " + error}
+                        </p>
 
-                        <div className="flex flex-col gap-1 p-3 bg-red-900/20 rounded-md w-full">
-                            <p className="text-sm font-medium text-red-300 uppercase">Failed To Fetch</p>
-                            <p className="text-xs text-red-200">Backend Service Went Down Temporarily. Please try again.</p>
+                        <p className="text-lg font-medium uppercase" style={{ color: "#ff8c66", fontFamily: "Nunito, sans-serif" }}>
+                            What does this mean?
+                        </p>
+
+                        {/* Example error #1 */}
+                        <div className="flex flex-col gap-1 p-3 w-full" style={{ fontFamily: "Nunito, sans-serif" }}>
+                            <p className="text-lg font-bold uppercase" style={{ color: "#ff8c66" }}>Failed To Fetch</p>
+                            <p className="text-base" style={{ color: "#ffb299" }}>
+                                The backend service went down temporarily. Please reload page and try again.
+                            </p>
                         </div>
 
-                        <div className="flex flex-col gap-1 p-3 bg-red-900/20 rounded-md w-full">
-                            <p className="text-sm font-medium text-red-300 uppercase">Unsupported File Type</p>
-                            <p className="text-xs text-red-200">Only PNG, JPG, GIF, and WebP files are supported. Please check your image and try again.</p>
+                        {/* Example error #2 */}
+                        <div className="flex flex-col gap-1 p-3 w-full" style={{ fontFamily: "Nunito, sans-serif" }}>
+                            <p className="text-lg font-bold uppercase" style={{ color: "#ff8c66" }}>Unsupported File Type</p>
+                            <p className="text-base" style={{ color: "#ffb299" }}>
+                                Only PNG, JPG, GIF, and WebP files are supported. Check your image and try again.
+                            </p>
                         </div>
 
-                        <div className="flex flex-col gap-1 p-3 bg-red-900/20 rounded-md w-full">
-                            <p className="text-sm font-medium text-red-300 uppercase">Unexpected Error</p>
-                            <p className="text-xs text-red-200">An unexpected error occurred. Reach out to support if this is keeps happening.</p>
+                        {/* Example error #3 */}
+                        <div className="flex flex-col gap-1 p-3 w-full" style={{ fontFamily: "Nunito, sans-serif" }}>
+                            <p className="text-lg font-bold uppercase" style={{ color: "#ff8c66" }}>Unexpected Error</p>
+                            <p className="text-base" style={{ color: "#ffb299" }}>
+                                An unexpected error occurred. Contact support if this keeps happening.
+                            </p>
                         </div>
                     </div>
                 )}
