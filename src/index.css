@@ -42,7 +42,7 @@
   input,
   textarea,
   select {
-    @apply border border-gray-300 rounded-md px-3 py-2 text-gray-900;
+    @apply border border-gray-300 rounded-none px-3 py-2 text-gray-900;
     text-align: center;
   }
 
@@ -66,6 +66,26 @@
     @apply text-xs leading-tight text-left;
     color: #d0d0d0;
   }
+}
+
+/* ---- Force square corners globally ----
+   rounded-full is intentionally excluded — it is used by stud ovals
+   which should remain circular. The switch is handled separately below. */
+input,
+textarea,
+select,
+button,
+[role="combobox"],
+[role="listbox"],
+[role="option"],
+[data-radix-popper-content-wrapper],
+.rounded,
+.rounded-sm,
+.rounded-md,
+.rounded-lg,
+.rounded-xl,
+.rounded-2xl {
+  border-radius: 0 !important;
 }
 
 /* ---- Components ---- */
@@ -137,11 +157,13 @@
   }
 
   .slider-track {
-    @apply relative h-1 w-full rounded-full bg-gray-300;
+    @apply relative h-1 w-full bg-gray-300;
+    border-radius: 0;
   }
 
   .slider-range {
-    @apply absolute h-1 rounded-full bg-blue-500;
+    @apply absolute h-1 bg-blue-500;
+    border-radius: 0;
   }
 
   .slider-thumb {
@@ -174,14 +196,16 @@
     cursor: grabbing;
   }
 
-  /* Switch */
+  /* Switch — explicitly square, does not rely on global override */
   .switch-root {
-    @apply relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300;
+    @apply relative inline-flex h-6 w-11 items-center bg-gray-300;
+    border-radius: 0;
     transition: background-color 0.2s;
   }
 
   .switch-thumb {
-    @apply inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out;
+    @apply inline-block h-4 w-4 transform bg-white shadow-md transition-transform duration-200 ease-in-out;
+    border-radius: 0;
   }
 
   .switch-root[data-state="checked"] {
@@ -208,7 +232,6 @@
     position: relative;
     background-color: #007A1F;
     border-radius: 0;
-    /* padding-top accounts for border-top cap (13px) + small gap before title */
     padding: 0.4rem 0.5rem 0 0.5rem;
     border: 2px solid #000;
     border-top: 13px solid #00A32A;
@@ -254,6 +277,7 @@
   .output-preview {
     background-color: #545454;
     border: 1px solid #444444;
+    border-radius: 0;
   }
 }
 

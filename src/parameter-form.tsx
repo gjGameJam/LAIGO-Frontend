@@ -228,7 +228,7 @@ export function ParameterForm({
             {values.mosaicType === "3d" && (
                 <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
-                        <Label htmlFor="float-input" className="text-xs font-sm text-muted-foreground uppercase tracking-wide">% of Background Colors</Label>
+                        <Label htmlFor="float-input" className="text-xs font-sm text-muted-foreground uppercase tracking-wide">% of Background Color</Label>
                         <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-mono font-sm tabular-nums text-foreground">{values.floatValue.toFixed(1)}</span>
                     </div>
                     <SliderPrimitive.Root
@@ -245,8 +245,8 @@ export function ParameterForm({
                         <SliderPrimitive.Thumb className="slider-thumb" />
                     </SliderPrimitive.Root>
                     <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>1.0</span>
-                        <span>100.0</span>
+                        <span>1</span>
+                        <span>100</span>
                     </div>
                 </div>
             )}
