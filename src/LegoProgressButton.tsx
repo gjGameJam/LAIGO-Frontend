@@ -4,6 +4,8 @@ interface LegoProgressButtonProps {
     progress: number
     running: boolean
     noFile?: boolean
+    queued?: boolean
+    queuePosition?: number | null
     onClick?: () => void
     disabled?: boolean
 }
@@ -12,6 +14,8 @@ export function LegoProgressButton({
     progress,
     running,
     noFile = false,
+    queued = false,
+    queuePosition = null,
     onClick,
     disabled
 }: LegoProgressButtonProps) {
@@ -56,17 +60,19 @@ export function LegoProgressButton({
 
     const label = running
         ? (progress >= 100 ? "Done!" : `${Math.round(progress)}%`)
-        : noFile ? "Upload Image" : "Convert"
+        : queued
+            ? (queuePosition != null ? `#${queuePosition} in line` : "In queue...")
+            : noFile ? "Upload Image" : "Convert"
 
     return (
         <button
             type="button"
-            disabled={disabled || running}
+            disabled={disabled || running || queued}
             onClick={onClick}
             className="relative w-[220px] h-[48px] border-2 border-black flex items-center justify-center overflow-visible"
             style={{
                 boxShadow: "inset 0 4px 0 rgba(0,0,0,0.2)",
-                cursor: noFile ? "not-allowed" : "pointer"
+                cursor: (noFile || queued) ? "not-allowed" : "pointer"
             }}
         >
             {/* ── Face base ── */}

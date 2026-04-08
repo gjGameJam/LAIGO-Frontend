@@ -34,6 +34,8 @@ export function ParameterForm({
     const [isDragging, setIsDragging] = useState(false)
     const [progress, setProgress] = useState(0)
     const [running, setRunning] = useState(false)
+    const [queued, setQueued] = useState(false)
+    const [queuePosition, setQueuePosition] = useState<number | null>(null)
     const [draining, setDraining] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -92,7 +94,9 @@ export function ParameterForm({
     const handleConvert = () => {
         if (!values.file) return
 
-        setRunning(true)
+        setQueued(false)
+        setQueuePosition(null)
+        setRunning(false)
         setDraining(false)
         setProgress(0)
         setError(null)
@@ -107,15 +111,33 @@ export function ParameterForm({
                     while (!jobDone) {
                         await new Promise((r) => setTimeout(r, 500))
                         const job = await getJob(job_id)
-                        if (!draining) setProgress(job.progress ?? 0)
+
+                        if (job.status === "queued") {
+                            setQueued(true)
+                            setRunning(false)
+                            setQueuePosition(job.queue_position ?? null)
+                        } else if (job.status === "running") {
+                            setQueued(false)
+                            setQueuePosition(null)
+                            setRunning(true)
+                            if (!draining) setProgress(job.progress ?? 0)
+                        }
+
                         if (job.status === "complete" || job.status === "failed") {
+                            setQueued(false)
+                            setQueuePosition(null)
                             jobDone = true
                         }
                     }
                 } catch (err: any) {
                     console.error("Job submission failed:", err)
                     setError(err.message || "Job submission failed")
+                    setQueued(false)
+                    setQueuePosition(null)
+                    setRunning(false)
                 } finally {
+                    setQueued(false)
+                    setQueuePosition(null)
                     setProgress(100)
                     setTimeout(() => startDrain(), 500)
                 }
@@ -323,6 +345,8 @@ export function ParameterForm({
                 <LegoProgressButton
                     progress={progress}
                     running={running || draining}
+                    queued={queued}
+                    queuePosition={queuePosition}
                     noFile={!values.file}
                     disabled={!values.file}
                     onClick={handleConvert}
