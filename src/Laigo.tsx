@@ -10,7 +10,7 @@ export default function Laigo() {
     const [values, setValues] = useState<FormValues>({
         file: null,
         intValue: 4,
-        mosaicType: "3d",
+        mosaicType: "2d",
         floatValue: 100,
         boolValue: true,
     })

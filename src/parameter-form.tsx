@@ -244,7 +244,7 @@ export function ParameterForm({
                     <SliderPrimitive.Root
                         className="slider-root w-full max-w-[100%] justify-self-center"
                         min={1}
-                        max={10}
+                        max={8}
                         step={1}
                         value={[values.intValue]}
                         onValueChange={([v]) => onChange({ ...values, intValue: v })}
@@ -254,7 +254,7 @@ export function ParameterForm({
                         </SliderPrimitive.Track>
                         <SliderPrimitive.Thumb className="slider-thumb" />
                     </SliderPrimitive.Root>
-                    <span className="text-[10px] text-muted-foreground">10</span>
+                    <span className="text-[10px] text-muted-foreground">8</span>
                 </div>
             </div>
 
