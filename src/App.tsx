@@ -78,7 +78,7 @@ export default function App() {
                             variants={container}
                             initial="hidden"
                             animate="show"
-                            className="pt-8 pb-8 text-center"
+                            className="pt-2 pb-8 text-center"
                         >
                             <motion.h1
                                 variants={fadeUp}
@@ -86,14 +86,14 @@ export default function App() {
                             >
                                 <span className="gradient-text">Turn any image</span>
                                 <br />
-                                <span className="gradient-text">into a LEGO mosaic.</span>
+                                <span className="gradient-text">into a LEGO mosaic</span>
                             </motion.h1>
 
                             <motion.p
                                 variants={fadeUp}
                                 className="max-w-xl mx-auto text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed"
                             >
-                                Upload a photo, tune the parameters, and get a build pack — piece list and instructions ready for Pick a Brick.
+                                Upload a photo, tune the parameters, and build your imagination!
                             </motion.p>
                         </motion.div>
 
@@ -119,7 +119,7 @@ export default function App() {
 
                             {/* Output brick */}
                             <LegoBrickCard tone="violet" className="lg:sticky lg:top-[4.5rem]">
-                                <OutputPanel job={job} submissionError={submissionError} />
+                                <OutputPanel jobId={jobId} job={job} submissionError={submissionError} />
                             </LegoBrickCard>
                         </motion.div>
                     </main>

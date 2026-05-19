@@ -13,7 +13,10 @@
       "Bash(node_modules/.bin/tsc *)",
       "Bash(NODE_OPTIONS=\"--use-system-ca\" node_modules/.bin/tsc -b)",
       "Bash(NODE_OPTIONS=\"--use-system-ca\" npm install --save-dev typescript-eslint@latest)",
-      "Bash(NODE_OPTIONS=\"--use-system-ca\" npm uninstall @radix-ui/react-label @radix-ui/react-switch class-variance-authority tailwind-merge)"
+      "Bash(NODE_OPTIONS=\"--use-system-ca\" npm uninstall @radix-ui/react-label @radix-ui/react-switch class-variance-authority tailwind-merge)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(tasklist /FI \"IMAGENAME eq node.exe\" /FO TABLE)",
+      "PowerShell(Get-Process *)"
     ]
   }
 }

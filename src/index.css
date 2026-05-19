@@ -69,14 +69,14 @@
 @layer utilities {
   /* Headline text gradient — violet to LEGO yellow */
   .gradient-text {
-    background: linear-gradient(135deg, #18181b 0%, #3f3f46 35%, #7c3aed 75%, #FFD700 100%);
+    background: linear-gradient(135deg, #18181b 0%, #3f3f46 35%, #5B3FBF 75%, #FFD700 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .dark .gradient-text {
-    background: linear-gradient(135deg, #fff 0%, #e4e4e7 30%, #a78bfa 70%, #FFD700 100%);
+    background: linear-gradient(135deg, #fff 0%, #e4e4e7 30%, #9B85F0 70%, #FFD700 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -96,11 +96,11 @@
   }
 
   .glow-violet {
-    box-shadow: 0 0 40px rgba(139, 92, 246, 0.06), 0 0 80px rgba(139, 92, 246, 0.03);
+    box-shadow: 0 0 40px rgba(107, 85, 220, 0.06), 0 0 80px rgba(107, 85, 220, 0.03);
   }
 
   .dark .glow-violet {
-    box-shadow: 0 0 40px rgba(139, 92, 246, 0.15), 0 0 80px rgba(139, 92, 246, 0.08);
+    box-shadow: 0 0 40px rgba(107, 85, 220, 0.15), 0 0 80px rgba(107, 85, 220, 0.08);
   }
 
   .glow-yellow {

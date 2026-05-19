@@ -97,7 +97,7 @@ export function ParameterForm({
 
             {/* Block Width */}
             <motion.div {...fadeInUp} transition={{ ...fadeInUp.transition, delay: 0.06 }}>
-                <SectionLabel icon={Ruler} hint={`${values.blockWidth * 16} studs wide`}>
+                <SectionLabel icon={Ruler} hint={`${values.blockWidth * 16} legos wide`}>
                     Block Width
                 </SectionLabel>
                 <Slider

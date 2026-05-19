@@ -22,14 +22,14 @@ const PALETTES = {
         studCap: '#FFE866',
     },
     violet: {
-        topHigh: '#C4B5FD',
-        top: '#A78BFA',
-        frontHigh: '#8B5CF6',
-        front: '#7C3AED',
-        right: '#4C1D95',
-        rightDark: '#2E0E64',
-        studBody: '#6D28D9',
-        studCap: '#A78BFA',
+        topHigh: '#B5A5E8',
+        top: '#9B85F0',
+        frontHigh: '#6B55DC',
+        front: '#5B3FBF',
+        right: '#382678',
+        rightDark: '#1F1547',
+        studBody: '#48319A',
+        studCap: '#9B85F0',
     },
 } as const
 

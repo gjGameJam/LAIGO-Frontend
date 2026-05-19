@@ -5,7 +5,7 @@ import { Button } from '../ui/Button'
 const SIZE = 120
 const HALF = SIZE / 2
 
-// Yellow + violet two-tone cube.
+// Yellow + indigo-plum two-tone cube.
 const FACES = [
     {
         id: 'front',
@@ -19,17 +19,17 @@ const FACES = [
         id: 'back',
         label: 'Back',
         transform: `rotateY(180deg) translateZ(${HALF}px)`,
-        bg: 'rgba(124, 58, 237, 0.22)',
-        border: 'rgba(124, 58, 237, 0.55)',
-        textColor: 'rgba(196, 181, 253, 0.95)',
+        bg: 'rgba(91, 63, 191, 0.22)',
+        border: 'rgba(91, 63, 191, 0.55)',
+        textColor: 'rgba(181, 165, 232, 0.95)',
     },
     {
         id: 'right',
         label: 'Right',
         transform: `rotateY(90deg) translateZ(${HALF}px)`,
-        bg: 'rgba(167, 139, 250, 0.22)',
-        border: 'rgba(139, 92, 246, 0.55)',
-        textColor: 'rgba(196, 181, 253, 0.95)',
+        bg: 'rgba(155, 133, 240, 0.22)',
+        border: 'rgba(107, 85, 220, 0.55)',
+        textColor: 'rgba(181, 165, 232, 0.95)',
     },
     {
         id: 'left',
@@ -45,15 +45,15 @@ const FACES = [
         transform: `rotateX(-90deg) translateZ(${HALF}px)`,
         bg: 'rgba(255, 215, 0, 0.55)',
         border: 'rgba(229, 190, 0, 0.85)',
-        textColor: 'rgba(91, 33, 182, 1)',
+        textColor: 'rgba(56, 38, 120, 1)',
     },
     {
         id: 'bottom',
         label: 'Bottom',
         transform: `rotateX(90deg) translateZ(${HALF}px)`,
-        bg: 'rgba(91, 33, 182, 0.30)',
-        border: 'rgba(91, 33, 182, 0.65)',
-        textColor: 'rgba(196, 181, 253, 0.95)',
+        bg: 'rgba(56, 38, 120, 0.30)',
+        border: 'rgba(56, 38, 120, 0.65)',
+        textColor: 'rgba(181, 165, 232, 0.95)',
     },
 ] as const
 
@@ -146,7 +146,7 @@ export function BrickPreview3D({ autoRotate = true }: BrickPreview3DProps) {
 
             <div className="flex-1 glass rounded-xl overflow-hidden relative flex flex-col items-center justify-center select-none min-h-[300px]">
                 <div
-                    style={{ perspective: '800px', width: `${SIZE}px`, height: `${SIZE}px` }}
+                    style={{ perspective: '2400px', width: `${SIZE}px`, height: `${SIZE}px` }}
                     className={dragging ? 'cursor-grabbing' : 'cursor-grab'}
                     onMouseDown={startDrag}
                     onTouchStart={startDrag}

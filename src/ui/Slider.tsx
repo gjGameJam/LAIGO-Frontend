@@ -41,7 +41,7 @@ export function Slider({
                 aria-label={ariaLabel ?? 'Slider'}
             >
                 <RadixSlider.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-zinc-200 border border-zinc-300 dark:bg-zinc-800 dark:border-zinc-700">
-                    <RadixSlider.Range className="absolute h-full bg-gradient-to-r from-violet-700 via-violet-500 to-brick-yellow rounded-full" />
+                    <RadixSlider.Range className="absolute h-full bg-gradient-to-r from-brick-yellow via-violet-500 to-violet-700 rounded-full" />
                 </RadixSlider.Track>
 
                 <RadixSlider.Thumb
@@ -49,8 +49,8 @@ export function Slider({
                         block h-5 w-5 rounded-full border-2 border-violet-500 bg-white dark:bg-zinc-950
                         outline-none cursor-grab active:cursor-grabbing
                         transition-shadow duration-150
-                        hover:shadow-[0_0_0_5px_rgba(139,92,246,0.2)]
-                        focus-visible:shadow-[0_0_0_5px_rgba(139,92,246,0.35)]
+                        hover:shadow-[0_0_0_5px_rgba(107,85,220,0.2)]
+                        focus-visible:shadow-[0_0_0_5px_rgba(107,85,220,0.35)]
                     "
                 />
             </RadixSlider.Root>
