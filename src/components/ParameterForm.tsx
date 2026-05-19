@@ -25,8 +25,8 @@ const DIMENSION_OPTIONS = [
 ]
 
 const FRAMED_OPTIONS = [
+    { label: 'Unframed', value: false },
     { label: 'Framed', value: true },
-    { label: 'No Frame', value: false },
 ]
 
 function SectionLabel({ icon: Icon, children, hint }: { icon: typeof Ruler; children: React.ReactNode; hint?: string }) {
