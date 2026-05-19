@@ -5,6 +5,7 @@ export default {
     './src/**/*.{js,ts,jsx,tsx}',
     './index.html',
   ],
+  // (src/legacy was deleted; the glob above is the active surface.)
   theme: {
     extend: {
       fontFamily: {

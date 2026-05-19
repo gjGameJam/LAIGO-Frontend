@@ -11,12 +11,9 @@
  */
 
 const UPM = 1000
-const TARGET_H = 28
-const SCALE = TARGET_H / UPM
+const DEFAULT_HEIGHT = 28
 const PAD_X = 6
 const PAD_Y = 8
-const SVG_H = TARGET_H + PAD_Y
-const BASELINE = Math.round((SVG_H - 750 * SCALE) / 2 + 750 * SCALE)
 const STROKE_W = 20
 const LETTER_SPACING = 60
 
@@ -67,32 +64,38 @@ const GLYPHS = {
 
 const WORD = 'LAIGO' as const
 
-export function LaigoWordmark({ height = TARGET_H }: { height?: number }) {
+export function LaigoWordmark({ height = DEFAULT_HEIGHT }: { height?: number }) {
     const scale = height / UPM
     const padX = PAD_X
     const padY = PAD_Y
     const baseline = Math.round((height + padY - 750 * scale) / 2 + 750 * scale)
 
     let totalW = 0
-    for (const ch of WORD) totalW += (GLYPHS[ch].w + LETTER_SPACING)
+    for (const ch of WORD) totalW += (GLYPHS[ch as keyof typeof GLYPHS].w + LETTER_SPACING)
 
     const svgW = Math.ceil(totalW * scale) + padX * 2
     const svgH = height + padY
 
-    let x = 0
+    // Pre-compute horizontal offsets so each glyph render is pure.
+    const xs: number[] = []
+    let cursor = 0
+    for (const ch of WORD) {
+        xs.push(cursor)
+        cursor += GLYPHS[ch as keyof typeof GLYPHS].w + LETTER_SPACING
+    }
+
     const glyphEls = WORD.split('').map((ch, i) => {
         const g = GLYPHS[ch as keyof typeof GLYPHS]
-        const tx = (padX + x * scale).toFixed(2)
+        const tx = (padX + xs[i] * scale).toFixed(2)
         const transform = `translate(${tx}, ${baseline}) scale(${scale.toFixed(4)}, -${scale.toFixed(4)})`
-        x += g.w + LETTER_SPACING
 
         return (
             <g key={i}>
-                <path d={g.outer ?? g.d} fill="#FFD700" stroke="#FFD700"
+                <path d={g.outer} fill="#FFD700" stroke="#FFD700"
                     strokeWidth={STROKE_W * 8} strokeLinejoin="round" transform={transform} />
-                <path d={g.outer ?? g.d} fill="black" stroke="black"
+                <path d={g.outer} fill="black" stroke="black"
                     strokeWidth={STROKE_W * 2} strokeLinejoin="round" transform={transform} />
-                <path d={g.inner ?? g.d} fill="white" stroke="none" transform={transform} />
+                <path d={g.inner} fill="white" stroke="none" transform={transform} />
                 {'hole' in g && g.hole && (
                     <path d={g.hole} fill="black" stroke="none" transform={transform} />
                 )}
@@ -118,7 +121,3 @@ export function LaigoWordmark({ height = TARGET_H }: { height?: number }) {
     )
 }
 
-// Silence unused warnings for fallback constants (kept for clarity, see consts above)
-void SVG_H
-void BASELINE
-void TARGET_H

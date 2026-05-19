@@ -33,27 +33,49 @@ const PALETTES = {
     },
 } as const
 
-// Brick geometry — viewed from top-right
-const DEPTH_X = 26       // horizontal projection of depth (right face width)
-const DEPTH_Y = 18       // vertical projection of depth (top face height)
+/**
+ * Real-LEGO proportions (sourced from LDraw / BrickLink / studs.io specs).
+ *
+ *   P  = 1 LEGO module = stud-to-stud pitch = 8 mm in real life
+ *
+ *   stud diameter           = 0.600 P   ( 4.8 mm)
+ *   stud height             = 0.225 P   ( 1.8 mm)
+ *   brick depth (1 unit)    = 1.000 P   ( 8.0 mm)
+ *   first-stud edge offset  = 0.500 P   ( 4.0 mm)
+ *
+ * Cap-ellipse ry is the geometric projection of a horizontal circle of
+ * radius (STUD_W / 2) under our depth-axis projection (DEPTH_X, -DEPTH_Y)/P:
+ *
+ *     ry = (STUD_W / 2) × (DEPTH_Y / P)
+ *
+ * The brick is exactly one unit deep; depth projects to (DEPTH_X, -DEPTH_Y).
+ */
 
-// Stud geometry — cylinders rising from the top face
-const STUD_W = 20
-const STUD_BODY_H = 14
-const STUD_CAP_RY = 5
-const STUD_PEEK = STUD_BODY_H + STUD_CAP_RY - DEPTH_Y / 2  // how far stud rises above brick top
+// 1 LEGO module in our scale (px)
+const STUD_PITCH = 56
 
-// Layout
-const PAD_TOP = DEPTH_Y + Math.ceil(STUD_PEEK) + 4   // room above for top face + studs
-const PAD_RIGHT = DEPTH_X + 2                        // room to the right for the right face
+// Depth projection — single-block-thick, viewed from top-right
+const DEPTH_X = 14
+const DEPTH_Y = 9
 
-// Studs
-const STUD_PITCH = 56   // target spacing between stud centers
-const SIDE_PAD = 28     // padding at left/right of stud row
+// Real-LEGO stud proportions
+const STUD_W = Math.round(0.60 * STUD_PITCH)         // 34: stud diameter
+const STUD_BODY_H = Math.round(0.225 * STUD_PITCH)   // 13: stud height
+const STUD_CAP_RY = Math.max(                        // 3: projected cap vertical radius
+    2,
+    Math.round((STUD_W / 2) * (DEPTH_Y / STUD_PITCH)),
+)
+
+// Wrapper padding to accommodate the visible brick chassis
+const STUD_PEEK = STUD_BODY_H + STUD_CAP_RY - DEPTH_Y / 2
+const PAD_TOP = DEPTH_Y + Math.ceil(STUD_PEEK) + 6
+const PAD_RIGHT = DEPTH_X + 2
 
 export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps) {
     const ref = useRef<HTMLDivElement>(null)
-    const uid = useId().replace(/:/g, '')
+    // React's useId may emit characters that aren't valid in SVG `id` attributes
+    // (':', '«', '»' across versions). Normalize to a permissive alphabet.
+    const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '_')
     const [size, setSize] = useState({ w: 0, h: 0 })
     const [studCount, setStudCount] = useState(6)
     const p = PALETTES[tone]
@@ -64,7 +86,9 @@ export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps)
         const update = () => {
             const r = el.getBoundingClientRect()
             setSize({ w: r.width, h: r.height })
-            setStudCount(Math.max(3, Math.floor((r.width - SIDE_PAD * 2) / STUD_PITCH)))
+            // Pick the largest real-LEGO 1×N brick that fits the current
+            // card width. width(1×N) = N × P, so N = floor(w / P).
+            setStudCount(Math.max(2, Math.floor(r.width / STUD_PITCH)))
         }
         update()
         const observer = new ResizeObserver(update)
@@ -73,6 +97,11 @@ export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps)
     }, [])
 
     const { w, h } = size
+    // Stud row uses exact P spacing (real-LEGO interval). The whole row is
+    // centered, so any leftover width when w isn't a clean multiple of P is
+    // split equally on left/right rather than warping the spacing.
+    const studsRowWidth = studCount * STUD_PITCH
+    const studRowStartX = (w - studsRowWidth) / 2
 
     return (
         <div
@@ -136,10 +165,12 @@ export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps)
                         strokeLinejoin="miter"
                     />
 
-                    {/* Studs — sit at the mid-depth of the top face, rise straight up */}
+                    {/* Studs — each centered on a P × P cell of the top face,
+                        sitting at mid-depth and rising STUD_BODY_H straight up */}
                     {Array.from({ length: studCount }, (_, i) => {
-                        const fraction = (i + 0.5) / studCount
-                        const fx = SIDE_PAD + fraction * (w - SIDE_PAD * 2)
+                        // Stud center on the front-face X axis (LEGO: P/2 + i·P from row start)
+                        const fx = studRowStartX + (i + 0.5) * STUD_PITCH
+                        // Project to mid-depth (depth_z = P/2) on the top face
                         const baseX = fx + DEPTH_X / 2
                         const baseY = PAD_TOP - DEPTH_Y / 2
                         const bodyTopY = baseY - STUD_BODY_H

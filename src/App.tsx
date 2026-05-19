@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react'
 import { motion, MotionConfig } from 'framer-motion'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Navbar, type ApiStatus } from './components/Navbar'
-import { ParameterForm, DEFAULT_VALUES, type FormValues } from './components/ParameterForm'
+import { ParameterForm } from './components/ParameterForm'
+import { DEFAULT_VALUES, type FormValues } from './components/parameterFormDefaults'
 import { OutputPanel } from './components/OutputPanel'
 import { LegoBrickCard } from './ui/LegoBrickCard'
+import { FallingBricks } from './ui/FallingBricks'
 import { useDarkMode } from './hooks/useDarkMode'
+import { useJob } from './hooks/useJob'
 import { health } from './api'
 
 const container = {
@@ -30,13 +33,28 @@ export default function App() {
     const [apiStatus, setApiStatus] = useState<ApiStatus>('checking')
     const [values, setValues] = useState<FormValues>(DEFAULT_VALUES)
     const [jobId, setJobId] = useState<string | null>(null)
-    const [, setJobError] = useState<string | null>(null)
+    const [submissionError, setSubmissionError] = useState<string | null>(null)
+    const job = useJob(jobId)
 
     useEffect(() => {
-        health()
+        const controller = new AbortController()
+        health(controller.signal)
             .then(() => setApiStatus('online'))
-            .catch(() => setApiStatus('offline'))
+            .catch(() => {
+                if (!controller.signal.aborted) setApiStatus('offline')
+            })
+        return () => controller.abort()
     }, [])
+
+    const handleJobSubmit = (id: string) => {
+        setSubmissionError(null)
+        setJobId(id)
+    }
+
+    const handleSubmissionError = (message: string) => {
+        setJobId(null)
+        setSubmissionError(message)
+    }
 
     return (
         <MotionConfig reducedMotion="user">
@@ -48,6 +66,9 @@ export default function App() {
                         <div className="absolute top-1/2 -left-32 w-[400px] h-[400px] rounded-full bg-violet-800/[0.06] dark:bg-violet-800/[0.05] blur-[80px]" />
                         <div className="absolute -bottom-32 right-1/3 w-[300px] h-[300px] rounded-full bg-brick-yellow/[0.06] dark:bg-brick-yellow/[0.05] blur-[80px]" />
                     </div>
+
+                    {/* Falling 3D LEGO bricks (subtle ambient texture above the orbs) */}
+                    <FallingBricks />
 
                     <Navbar darkMode={darkMode} onToggleDark={toggleDark} apiStatus={apiStatus} />
 
@@ -88,14 +109,17 @@ export default function App() {
                                 <ParameterForm
                                     values={values}
                                     onChange={setValues}
-                                    onJobCreated={setJobId}
-                                    onError={setJobError}
+                                    onJobSubmit={handleJobSubmit}
+                                    onSubmissionError={handleSubmissionError}
+                                    jobStatus={job.status}
+                                    jobProgress={job.progress}
+                                    jobQueuePosition={job.queuePosition}
                                 />
                             </LegoBrickCard>
 
                             {/* Output brick */}
                             <LegoBrickCard tone="violet" className="lg:sticky lg:top-[4.5rem]">
-                                <OutputPanel jobId={jobId ?? undefined} />
+                                <OutputPanel job={job} submissionError={submissionError} />
                             </LegoBrickCard>
                         </motion.div>
                     </main>

@@ -63,26 +63,18 @@ interface BrickPreview3DProps {
     autoRotate?: boolean
 }
 
+/**
+ * Idle 3D preview cube. Auto-rotation runs on the compositor via a CSS
+ * keyframe (.brick-auto-spin) — no per-frame React render. Once the user
+ * drags, we switch to inline transforms and keep the user's rotation until
+ * they hit Reset, which clears the override and resumes the CSS spin.
+ */
 export function BrickPreview3D({ autoRotate = true }: BrickPreview3DProps) {
-    const [rot, setRot] = useState(DEFAULT_ROT)
+    // null = use CSS auto-rotation; object = user has taken manual control
+    const [userRot, setUserRot] = useState<{ x: number; y: number } | null>(null)
     const [dragging, setDragging] = useState(false)
-    const dragRef = useRef<{ startX: number; startY: number; rot: { x: number; y: number } } | null>(
-        null,
-    )
+    const dragRef = useRef<{ startX: number; startY: number; rot: { x: number; y: number } } | null>(null)
 
-    // Auto-rotate when idle
-    useEffect(() => {
-        if (dragging || !autoRotate) return
-        let id: number
-        const tick = () => {
-            setRot((r) => ({ ...r, y: r.y + 0.25 }))
-            id = requestAnimationFrame(tick)
-        }
-        id = requestAnimationFrame(tick)
-        return () => cancelAnimationFrame(id)
-    }, [dragging, autoRotate])
-
-    // Global pointer tracking while dragging
     useEffect(() => {
         if (!dragging) return
         const onMove = (e: MouseEvent | TouchEvent) => {
@@ -92,7 +84,7 @@ export function BrickPreview3D({ autoRotate = true }: BrickPreview3DProps) {
             const clientY = isTouch ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY
             const dx = clientX - dragRef.current.startX
             const dy = clientY - dragRef.current.startY
-            setRot({
+            setUserRot({
                 x: dragRef.current.rot.x - dy * 0.5,
                 y: dragRef.current.rot.y + dx * 0.5,
             })
@@ -122,11 +114,16 @@ export function BrickPreview3D({ autoRotate = true }: BrickPreview3DProps) {
             ? (e as React.TouchEvent).touches[0].clientY
             : (e as React.MouseEvent).clientY
         setDragging(true)
-        dragRef.current = { startX: clientX, startY: clientY, rot: { ...rot } }
+        dragRef.current = { startX: clientX, startY: clientY, rot: userRot ?? DEFAULT_ROT }
         e.preventDefault()
     }
 
-    const reset = () => setRot(DEFAULT_ROT)
+    const reset = () => setUserRot(null)
+
+    const useCssSpin = userRot === null && autoRotate
+    const inlineTransform = useCssSpin
+        ? undefined
+        : `rotateX(${(userRot ?? DEFAULT_ROT).x}deg) rotateY(${(userRot ?? DEFAULT_ROT).y}deg)`
 
     return (
         <div className="flex flex-col h-full">
@@ -155,12 +152,13 @@ export function BrickPreview3D({ autoRotate = true }: BrickPreview3DProps) {
                     onTouchStart={startDrag}
                 >
                     <div
+                        className={useCssSpin ? 'brick-auto-spin' : undefined}
                         style={{
                             width: `${SIZE}px`,
                             height: `${SIZE}px`,
                             position: 'relative',
                             transformStyle: 'preserve-3d',
-                            transform: `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`,
+                            transform: inlineTransform,
                         }}
                     >
                         {FACES.map((face) => (

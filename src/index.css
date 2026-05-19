@@ -124,4 +124,19 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     @apply bg-zinc-400 dark:bg-zinc-600;
   }
+
+  /* BrickPreview3D auto-rotation — CSS keyframe so the browser can run it
+     on the compositor thread instead of paying a React re-render per frame. */
+  @keyframes brick-auto-spin {
+    from { transform: rotateX(-22deg) rotateY(0deg); }
+    to   { transform: rotateX(-22deg) rotateY(360deg); }
+  }
+  .brick-auto-spin {
+    animation: brick-auto-spin 24s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .brick-auto-spin {
+      animation: none;
+    }
+  }
 }

@@ -1,33 +1,22 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Ruler, Box, Frame, ImagePlus } from 'lucide-react'
-import { ImageUpload, type UploadedImage } from '../ui/ImageUpload'
+import { ImageUpload } from '../ui/ImageUpload'
 import { Slider } from '../ui/Slider'
 import { SegmentedControl } from '../ui/SegmentedControl'
 import { ConvertButton } from './ConvertButton'
-import { submitJob, buildFormData, getJob } from '../api'
-
-export interface FormValues {
-    image: UploadedImage | null
-    blockWidth: number
-    mosaicType: '2d' | '3d'
-    backgroundPercent: number
-    framed: boolean
-}
-
-export const DEFAULT_VALUES: FormValues = {
-    image: null,
-    blockWidth: 4,
-    mosaicType: '2d',
-    backgroundPercent: 100,
-    framed: true,
-}
+import { submitJob, buildFormData } from '../api'
+import type { JobStatus } from '../hooks/useJob'
+import type { FormValues } from './parameterFormDefaults'
 
 interface ParameterFormProps {
     values: FormValues
     onChange: (v: FormValues) => void
-    onJobCreated: (jobId: string) => void
-    onError: (message: string) => void
+    onJobSubmit: (jobId: string) => void
+    onSubmissionError: (message: string) => void
+    jobStatus: JobStatus
+    jobProgress: number
+    jobQueuePosition: number | null
 }
 
 const DIMENSION_OPTIONS = [
@@ -66,43 +55,20 @@ const fadeInUp = {
     transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
 }
 
-export function ParameterForm({ values, onChange, onJobCreated, onError }: ParameterFormProps) {
+export function ParameterForm({
+    values,
+    onChange,
+    onJobSubmit,
+    onSubmissionError,
+    jobStatus,
+    jobProgress,
+    jobQueuePosition,
+}: ParameterFormProps) {
     const set = <K extends keyof FormValues>(key: K) => (val: FormValues[K]) =>
         onChange({ ...values, [key]: val })
 
-    const [progress, setProgress] = useState(0)
-    const [running, setRunning] = useState(false)
-    const [queued, setQueued] = useState(false)
-    const [queuePosition, setQueuePosition] = useState<number | null>(null)
-    const drainTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-    const startDrain = useCallback(() => {
-        if (drainTimerRef.current) clearInterval(drainTimerRef.current)
-        let current = 100
-        const steps = 20
-        const stepSize = 100 / steps
-        const stepMs = 500 / steps
-        drainTimerRef.current = setInterval(() => {
-            current -= stepSize
-            if (current <= 0) {
-                if (drainTimerRef.current) clearInterval(drainTimerRef.current)
-                drainTimerRef.current = null
-                setProgress(0)
-                setRunning(false)
-            } else {
-                setProgress(current)
-            }
-        }, stepMs)
-    }, [])
-
     const handleConvert = useCallback(async () => {
         if (!values.image) return
-
-        setProgress(0)
-        setRunning(false)
-        setQueued(false)
-        setQueuePosition(null)
-
         try {
             const formData = buildFormData({
                 file: values.image.file,
@@ -112,44 +78,12 @@ export function ParameterForm({ values, onChange, onJobCreated, onError }: Param
                 boolValue: values.framed,
             })
             const { job_id } = await submitJob(formData)
-            onJobCreated(job_id)
-
-            let done = false
-            while (!done) {
-                await new Promise(r => setTimeout(r, 500))
-                const job = await getJob(job_id)
-
-                if (job.status === 'queued') {
-                    setQueued(true)
-                    setRunning(false)
-                    setQueuePosition(job.queue_position ?? null)
-                } else if (job.status === 'running') {
-                    setQueued(false)
-                    setQueuePosition(null)
-                    setRunning(true)
-                    setProgress(job.progress ?? 0)
-                }
-
-                if (job.status === 'complete' || job.status === 'failed') {
-                    setQueued(false)
-                    setQueuePosition(null)
-                    done = true
-                }
-            }
+            onJobSubmit(job_id)
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Job submission failed'
-            console.error('Job submission failed:', err)
-            onError(message)
-            setQueued(false)
-            setQueuePosition(null)
-            setRunning(false)
-        } finally {
-            setQueued(false)
-            setQueuePosition(null)
-            setProgress(100)
-            setTimeout(() => startDrain(), 500)
+            onSubmissionError(message)
         }
-    }, [values, onJobCreated, onError, startDrain])
+    }, [values, onJobSubmit, onSubmissionError])
 
     return (
         <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
@@ -163,7 +97,7 @@ export function ParameterForm({ values, onChange, onJobCreated, onError }: Param
 
             {/* Block Width */}
             <motion.div {...fadeInUp} transition={{ ...fadeInUp.transition, delay: 0.06 }}>
-                <SectionLabel icon={Ruler} hint="Blocks are 16 studs wide">
+                <SectionLabel icon={Ruler} hint={`${values.blockWidth * 16} studs wide`}>
                     Block Width
                 </SectionLabel>
                 <Slider
@@ -236,10 +170,10 @@ export function ParameterForm({ values, onChange, onJobCreated, onError }: Param
             {/* Convert */}
             <motion.div {...fadeInUp} transition={{ ...fadeInUp.transition, delay: 0.24 }}>
                 <ConvertButton
-                    progress={progress}
-                    running={running}
-                    queued={queued}
-                    queuePosition={queuePosition}
+                    progress={jobProgress}
+                    running={jobStatus === 'running'}
+                    queued={jobStatus === 'queued'}
+                    queuePosition={jobQueuePosition}
                     noFile={!values.image}
                     onClick={handleConvert}
                 />

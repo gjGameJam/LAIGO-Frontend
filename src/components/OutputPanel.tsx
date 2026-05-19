@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     DownloadIcon,
@@ -10,7 +10,7 @@ import {
 import { Button } from '../ui/Button'
 import { BrickPreview3D } from './BrickPreview3D'
 import { StudStackingLoader } from './StudStackingLoader'
-import { getJob, getDownloadUrl } from '../api'
+import type { JobState } from '../hooks/useJob'
 
 const STEPS = [
     { icon: DownloadIcon, text: 'Download the ZIP file with everything inside.' },
@@ -19,89 +19,71 @@ const STEPS = [
     { icon: HammerIcon, text: 'When they arrive, follow the instructions and build!' },
 ]
 
-export type JobStatus = 'idle' | 'queued' | 'running' | 'complete' | 'failed'
-
 interface OutputPanelProps {
-    jobId?: string
+    job: JobState
+    submissionError: string | null
 }
 
-export function OutputPanel({ jobId }: OutputPanelProps) {
-    const [status, setStatus] = useState<JobStatus>('idle')
-    const [progress, setProgress] = useState(0)
-    const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-    const [error, setError] = useState<string | null>(null)
+export function OutputPanel({ job, submissionError }: OutputPanelProps) {
+    const [previewBroken, setPreviewBroken] = useState(false)
 
-    useEffect(() => {
-        if (!jobId) {
-            setStatus('idle')
-            setPreviewUrl(null)
-            setDownloadUrl(null)
-            setError(null)
-            setProgress(0)
-            return
-        }
-
-        let active = true
-        let timer: number | null = null
-
-        const poll = async () => {
-            if (!active) return
-            try {
-                const job = await getJob(jobId)
-                if (!active) return
-
-                if (job.status === 'queued') {
-                    setStatus('queued')
-                } else if (job.status === 'running') {
-                    setStatus('running')
-                    setProgress(job.progress ?? 0)
-                } else if (job.status === 'complete') {
-                    setStatus('complete')
-                    setProgress(100)
-                    setDownloadUrl(getDownloadUrl(jobId))
-                    if (job.preview_url) setPreviewUrl(job.preview_url)
-                    return
-                } else if (job.status === 'failed') {
-                    setStatus('failed')
-                    setError(job.error ?? 'Job failed')
-                    return
-                }
-
-                timer = window.setTimeout(poll, 2000)
-            } catch (err) {
-                if (!active) return
-                const message = err instanceof Error ? err.message : 'Job failed'
-                console.error(err)
-                setError(message)
-                setStatus('failed')
-            }
-        }
-
-        setStatus('queued')
-        setError(null)
-        setPreviewUrl(null)
-        setDownloadUrl(null)
-        poll()
-
-        return () => {
-            active = false
-            if (timer) clearTimeout(timer)
-        }
-    }, [jobId])
+    // A pre-poll submission error overrides job state — display it as a failure.
+    const isFailed = job.status === 'failed' || submissionError !== null
+    const errorMessage = submissionError ?? job.error
+    const status = isFailed ? 'failed' : job.status
+    const { progress, queuePosition, downloadUrl, previewUrl } = job
 
     return (
         <div className="flex flex-col h-full">
             <AnimatePresence mode="wait" initial={false}>
-                {(status === 'idle' || status === 'queued') && (
+                {status === 'idle' && (
                     <motion.div
-                        key="preview-3d"
+                        key="idle"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.25 }}
                     >
                         <BrickPreview3D />
+                    </motion.div>
+                )}
+
+                {status === 'queued' && (
+                    <motion.div
+                        key="queued"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="flex flex-col h-full"
+                    >
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    Waiting in Queue
+                                </span>
+                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                                    <span className="text-xs text-violet-500 dark:text-violet-400 font-medium">
+                                        Queued
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 glass rounded-xl overflow-hidden flex flex-col items-center justify-center py-12 min-h-[300px] gap-3">
+                            <div className="text-5xl font-bold tabular-nums text-violet-600 dark:text-violet-400">
+                                {queuePosition != null ? `#${queuePosition}` : '…'}
+                            </div>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-300">
+                                {queuePosition != null
+                                    ? `${queuePosition === 1 ? 'You are next' : `${queuePosition - 1} job${queuePosition - 1 === 1 ? '' : 's'} ahead of you`}`
+                                    : 'Your job is in line on the server'}
+                            </p>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                                We'll start as soon as the worker is free.
+                            </p>
+                        </div>
                     </motion.div>
                 )}
 
@@ -162,7 +144,7 @@ export function OutputPanel({ jobId }: OutputPanelProps) {
                                 <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={20} />
                                 <div>
                                     <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
-                                        {error ?? 'Something went wrong.'}
+                                        {errorMessage ?? 'Something went wrong.'}
                                     </p>
                                     <p className="text-xs text-zinc-500 dark:text-zinc-500">
                                         Here are the most common causes:
@@ -224,12 +206,13 @@ export function OutputPanel({ jobId }: OutputPanelProps) {
                         </div>
 
                         <div className="flex-1 glass rounded-xl overflow-hidden flex flex-col min-h-[300px]">
-                            {previewUrl ? (
+                            {previewUrl && !previewBroken ? (
                                 <div className="flex-1 flex items-center justify-center bg-zinc-100/40 dark:bg-zinc-900/40 p-4">
                                     <img
                                         src={previewUrl}
                                         alt="Mosaic preview"
                                         className="max-h-[280px] max-w-full object-contain rounded-lg"
+                                        onError={() => setPreviewBroken(true)}
                                     />
                                 </div>
                             ) : (
@@ -267,17 +250,20 @@ export function OutputPanel({ jobId }: OutputPanelProps) {
                                 </a>
 
                                 <div className="mt-4">
-                                    <Button
-                                        variant="yellow"
-                                        size="md"
-                                        onClick={() => {
-                                            if (downloadUrl) window.open(downloadUrl, '_blank')
-                                        }}
-                                        disabled={!downloadUrl}
-                                        className="w-full"
-                                    >
-                                        <DownloadIcon size={14} /> Download Build Pack
-                                    </Button>
+                                    {downloadUrl ? (
+                                        <a
+                                            href={downloadUrl}
+                                            download
+                                            rel="noopener noreferrer"
+                                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-brick-yellow text-zinc-900 hover:bg-brick-yellowLight active:bg-brick-yellowDark border border-zinc-900/10 shadow-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                                        >
+                                            <DownloadIcon size={14} /> Download Build Pack
+                                        </a>
+                                    ) : (
+                                        <Button variant="yellow" size="md" disabled className="w-full">
+                                            <DownloadIcon size={14} /> Download Build Pack
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         </div>

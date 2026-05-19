@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { motion } from 'framer-motion'
 import clsx from 'clsx'
 
@@ -19,8 +20,13 @@ export function SegmentedControl<T extends string | number | boolean>({
     value,
     onChange,
     ariaLabel,
-    id = 'segment',
+    id,
 }: SegmentedControlProps<T>) {
+    // Each instance gets a unique layoutId namespace by default so two
+    // SegmentedControls on the same page don't share a framer-motion
+    // underlay (which would teleport between them on selection change).
+    const autoId = useId()
+    const resolvedId = id ?? autoId
     return (
         <div
             role="radiogroup"
@@ -47,7 +53,7 @@ export function SegmentedControl<T extends string | number | boolean>({
                     >
                         {isActive && (
                             <motion.div
-                                layoutId={`${id}-active`}
+                                layoutId={`${resolvedId}-active`}
                                 className="absolute inset-0 bg-brick-yellow rounded-md shadow-sm border border-zinc-900/15"
                                 transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}
                             />

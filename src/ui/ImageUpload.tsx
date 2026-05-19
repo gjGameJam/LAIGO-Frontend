@@ -10,6 +10,38 @@ export interface UploadedImage {
     preview: string
 }
 
+/**
+ * Sniff the first 12 bytes of a file to verify it's a real image. file.type
+ * is browser-determined and easily wrong; checking the signature catches
+ * mislabeled files (e.g. an .exe renamed to .png) before they reach the API.
+ *
+ * Signatures:
+ *   PNG:  89 50 4E 47 0D 0A 1A 0A
+ *   JPEG: FF D8 FF
+ *   GIF:  47 49 46 38 ("GIF8")
+ *   WEBP: 52 49 46 46 ... 57 45 42 50 ("RIFF…WEBP")
+ */
+async function isImageFile(file: File): Promise<boolean> {
+    const buf = new Uint8Array(await file.slice(0, 12).arrayBuffer())
+    if (buf.length < 4) return false
+    // PNG
+    if (
+        buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 &&
+        buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a
+    ) return true
+    // JPEG
+    if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true
+    // GIF8
+    if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return true
+    // RIFF…WEBP
+    if (
+        buf.length >= 12 &&
+        buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+        buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
+    ) return true
+    return false
+}
+
 interface ImageUploadProps {
     value: UploadedImage | null
     onChange: (value: UploadedImage | null) => void
@@ -34,7 +66,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
     }, [value])
 
     const processFile = useCallback(
-        (file?: File | null) => {
+        async (file?: File | null) => {
             setError('')
             if (!file) return
             if (!ACCEPTED.includes(file.type)) {
@@ -43,6 +75,12 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
             }
             if (file.size > 10 * 1024 * 1024) {
                 setError('File too large. Maximum size is 10 MB.')
+                return
+            }
+            // Verify magic bytes — file.type is browser-derived and trivially spoofable.
+            const ok = await isImageFile(file).catch(() => false)
+            if (!ok) {
+                setError("That file isn't a valid image. Try a different one.")
                 return
             }
             if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
@@ -71,7 +109,10 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
 
     const handleDragLeave = (e: React.DragEvent) => {
         e.preventDefault()
-        dragCounterRef.current--
+        // Clamp to 0 — dragLeave can fire without a matching dragEnter when
+        // the drag starts inside the dropzone or when browsers reorder
+        // enter/leave across child boundaries.
+        dragCounterRef.current = Math.max(0, dragCounterRef.current - 1)
         if (dragCounterRef.current === 0) setDragging(false)
     }
 
