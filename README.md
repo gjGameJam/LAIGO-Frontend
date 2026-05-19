@@ -1,16 +1,152 @@
-# React + Vite
+# LAIGO Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Turn any image into a LEGO mosaic. Upload a photo, tune the parameters, and get a build pack — piece list and instructions ready for [Pick a Brick](https://www.lego.com/en-us/pick-and-build/pick-a-brick).
 
-Currently, two official plugins are available:
+> LAIGO is an independent fan project. Not affiliated with, endorsed by, or sponsored by the LEGO Group. LEGO is a trademark of the LEGO Group.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Run it
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```powershell
+# install
+npm install
 
-## Expanding the ESLint configuration
+# dev server on http://localhost:5173
+npm run dev
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+# production build to dist/
+npm run build
+
+# preview the production build locally
+npm run preview
+
+# lint
+npm run lint
+```
+
+If you hit a TLS / `UNABLE_TO_VERIFY_LEAF_SIGNATURE` error during `npm install`, run with the system CA store:
+
+```powershell
+$env:NODE_OPTIONS="--use-system-ca"; npm install
+```
+
+---
+
+## Environment
+
+Configure the backend URL with `VITE_API_URL` in `.env`:
+
+```
+VITE_API_URL=https://laigo.onrender.com
+```
+
+If unset, the frontend falls back to `http://localhost:8000`. The frontend probes `GET /health` on load to drive the status pill in the nav.
+
+---
+
+## What's in the UI
+
+| Area | What it does |
+|------|--------------|
+| **Navbar** | LAIGO wordmark (LegoThick brick font), API status pill (online / offline / checking), dark/light toggle. |
+| **Hero** | Marketing headline + tagline. |
+| **Parameters card** | Image upload (drag-drop), block-width slider (1–10), 2D/3D segmented control, % background-color slider (3D only), Frame toggle, Convert CTA. |
+| **Output card** | Idle: draggable 3D placeholder LEGO brick (yellow + violet, with stud caps). Running: animated brick-stacking loader. Complete: real mosaic preview + numbered next-steps + download button. Failed: error breakdown. |
+
+### Design system
+
+- **Palette** — violet (`violet-500/600/700`) base, **LEGO yellow `#FFD700`** as the primary action accent.
+- **Typography** — Inter for UI, JetBrains Mono for code/numbers, LegoThick for the LAIGO wordmark, Nunito retained for any legacy surface.
+- **Surfaces** — glassmorphic cards with subtle ambient violet/yellow orbs in the background. Stud rivets sit on the top edge of each card and the Convert button as a subtle LEGO accent.
+- **Motion** — Framer Motion (`framer-motion`) drives the hero stagger, segmented-control active indicator, drag-rotate cube, brick-stacking loader, and button hover/press transforms.
+- **Dark mode** — class-based, follows system preference on first load, then persisted to `localStorage`.
+
+---
+
+## Project layout
+
+```
+src/
+  api.js                       # health, submitJob, getJob, getDownloadUrl, buildFormData
+  index.css                    # Tailwind layers, fonts (LegoThick, Nunito), glass/gradient/glow utilities
+  main.jsx                     # ReactDOM entry — mounts <App/>
+  App.tsx                      # Top-level layout: orbs + Navbar + Hero + Form/Output grid + disclaimer
+  util.ts                      # cn() helper (clsx + tailwind-merge)
+
+  components/
+    Navbar.tsx                 # Sticky glass nav with wordmark + status pill + theme toggle
+    LaigoWordmark.tsx          # Inline SVG wordmark built from LegoThick glyph paths
+    ParameterForm.tsx          # Form values + Convert flow (submits + polls API)
+    ConvertButton.tsx          # Violet button with LEGO-yellow progress fill + stud strip
+    OutputPanel.tsx            # idle / queued / running / complete / failed state machine
+    BrickPreview3D.tsx         # Draggable CSS-3D LEGO brick (yellow+violet two-tone, stud caps)
+    StudStackingLoader.tsx     # Framer Motion loader — bricks drop and stack on loop
+    ErrorBoundary.tsx          # React error boundary
+
+  ui/
+    Button.tsx                 # Motion button — primary | yellow | secondary | ghost | outline
+    Slider.tsx                 # Radix slider — violet→yellow gradient range
+    SegmentedControl.tsx       # Radix-style radiogroup with motion layout indicator
+    ImageUpload.tsx            # Drop-zone + click-to-browse + preview, max 10MB
+    StudStrip.tsx              # Decorative row of LEGO studs (top edge of cards/buttons)
+
+  hooks/
+    useDarkMode.ts             # System-aware dark-mode toggle, persists to localStorage
+
+  fonts/                       # LegoThick + Nunito (kept; used by legacy + wordmark)
+  legacy/                      # Pre-2026 UI — see "Legacy" below
+
+public/                        # Favicons + manifest; brickStackNobg.gif (no longer used)
+```
+
+### Data flow
+
+1. `App` calls `health()` on mount → drives `apiStatus` pill in the nav.
+2. `ParameterForm` collects `{ image, blockWidth, mosaicType, backgroundPercent, framed }`.
+3. On **Convert**, it calls `buildFormData(...)` then `submitJob(...)`, gets back a `job_id`, and lifts it to `App` via `onJobCreated`.
+4. `OutputPanel` watches `jobId`, polls `GET /jobs/:id` every 2s, and transitions:
+   - `queued` → 3D placeholder cube + queue position chip
+   - `running` → brick-stacking loader + live progress
+   - `complete` → real preview image + next-steps list + download button
+   - `failed` → error breakdown
+5. `ConvertButton` also tracks the in-flight job locally so its progress fill matches the output state without re-fetching.
+
+### Backend contract
+
+The API is expected to expose:
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET`  | `/health` | drives the status pill (any 2xx = online) |
+| `POST` | `/generate` | multipart: `file`, `mosaic_block_width`, `mosaic_type`, `background_color_percent`, `to_frame`. Returns `{ job_id }`. |
+| `GET`  | `/jobs/:id` | `{ status, progress?, queue_position?, preview_url?, error? }` |
+| `GET`  | `/jobs/:id/download` | streams the ZIP build pack |
+
+---
+
+## Legacy (the old "2010" UI)
+
+The previous LEGO-wall UI (falling-brick canvas background, brick-stud panels, brick-font title with status, LegoButton/LegoProgressButton) is preserved in `src/legacy/` for reference. It's not imported by the new app and won't ship in the build. Files:
+
+```
+src/legacy/
+  Laigo.tsx, LaigoTitle.tsx, LaigoBrickCanvas.tsx
+  LegoButton.tsx, LegoProgressButton.tsx
+  parameter-form.tsx, output-panel.tsx
+  index.css
+  assets/{button,label,slider,switch}.tsx   # shadcn-style primitives
+```
+
+If you ever want to mount the old UI temporarily, swap `App.tsx` for `legacy/Laigo.tsx` in `src/main.jsx` and re-import `legacy/index.css`.
+
+---
+
+## Tech stack
+
+- **React 19** + **Vite 7**
+- **TypeScript** (per-file; `.jsx` for entry, `.tsx` for components)
+- **Tailwind CSS 3** with `darkMode: 'class'`
+- **Framer Motion 12** for animation
+- **Radix UI** (`react-slider`) for accessible controls
+- **lucide-react** for iconography
