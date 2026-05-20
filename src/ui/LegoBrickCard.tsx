@@ -44,30 +44,44 @@ const PALETTES = {
  *   first-stud edge offset  = 0.500 P   ( 4.0 mm)
  *
  * Cap-ellipse ry is the geometric projection of a horizontal circle of
- * radius (STUD_W / 2) under our depth-axis projection (DEPTH_X, -DEPTH_Y)/P:
+ * radius (studW / 2) under the depth axis (DEPTH_X, -DEPTH_Y)/P:
  *
- *     ry = (STUD_W / 2) × (DEPTH_Y / P)
+ *     ry = (studW / 2) × (DEPTH_Y / P)
  *
- * The brick is exactly one unit deep; depth projects to (DEPTH_X, -DEPTH_Y).
+ * Stud row spans the full card width: we pick N = ceil(w / P_target) so
+ * the actual pitch (w / N) is at most the target; every stud sits on its
+ * own P-cell, which gives the canonical 0.2P gutter at each end of the
+ * row and 0.4P gap between adjacent studs — no manual centering needed.
  */
 
-// 1 LEGO module in our scale (px)
-const STUD_PITCH = 56
+// Design-target LEGO module (px). Actual pitch per render is w / N and is
+// always ≤ this value, so target-derived padding is a safe upper bound.
+const STUD_PITCH_TARGET = 43
 
-// Depth projection — single-block-thick, viewed from top-right
-const DEPTH_X = 14
-const DEPTH_Y = 9
+// Depth projection of one P-unit (top-right view). Ratios chosen so the
+// viewing angle matches the wider scene (FallingBricks, StudStackingLoader).
+const DEPTH_X = 11
+const DEPTH_Y = 7
 
-// Real-LEGO stud proportions
-const STUD_W = Math.round(0.60 * STUD_PITCH)         // 34: stud diameter
-const STUD_BODY_H = Math.round(0.225 * STUD_PITCH)   // 13: stud height
-const STUD_CAP_RY = Math.max(                        // 3: projected cap vertical radius
+// Pure view-angle ratios: depth-axis projection per LEGO module. Used by the
+// stud-cap projection at any pitch, including the slightly sub-target pitch
+// we may end up with after fitting the row to w.
+const DEPTH_Y_RATIO = DEPTH_Y / STUD_PITCH_TARGET
+
+// Real-LEGO stud proportions at target pitch — used only to size the wrapper
+// padding for the worst case. Per-render stud dimensions are derived from the
+// actual pitch inside the component.
+const STUD_W_TARGET = Math.round(0.60 * STUD_PITCH_TARGET)         // 26
+const STUD_BODY_H_TARGET = Math.round(0.225 * STUD_PITCH_TARGET)   // 10
+const STUD_CAP_RY_TARGET = Math.max(
     2,
-    Math.round((STUD_W / 2) * (DEPTH_Y / STUD_PITCH)),
+    Math.round((STUD_W_TARGET / 2) * DEPTH_Y_RATIO),
 )
 
-// Wrapper padding to accommodate the visible brick chassis
-const STUD_PEEK = STUD_BODY_H + STUD_CAP_RY - DEPTH_Y / 2
+// Wrapper padding to accommodate the visible brick chassis. STUD_PEEK is how
+// far the stud extends above the back edge of the top face; computed against
+// target dimensions so the padding never under-shoots.
+const STUD_PEEK = STUD_BODY_H_TARGET + STUD_CAP_RY_TARGET - DEPTH_Y / 2
 const PAD_TOP = DEPTH_Y + Math.ceil(STUD_PEEK) + 6
 const PAD_RIGHT = DEPTH_X + 2
 
@@ -77,7 +91,6 @@ export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps)
     // (':', '«', '»' across versions). Normalize to a permissive alphabet.
     const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '_')
     const [size, setSize] = useState({ w: 0, h: 0 })
-    const [studCount, setStudCount] = useState(6)
     const p = PALETTES[tone]
 
     useLayoutEffect(() => {
@@ -86,9 +99,6 @@ export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps)
         const update = () => {
             const r = el.getBoundingClientRect()
             setSize({ w: r.width, h: r.height })
-            // Pick the largest real-LEGO 1×N brick that fits the current
-            // card width. width(1×N) = N × P, so N = floor(w / P).
-            setStudCount(Math.max(2, Math.floor(r.width / STUD_PITCH)))
         }
         update()
         const observer = new ResizeObserver(update)
@@ -97,11 +107,17 @@ export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps)
     }, [])
 
     const { w, h } = size
-    // Stud row uses exact P spacing (real-LEGO interval). The whole row is
-    // centered, so any leftover width when w isn't a clean multiple of P is
-    // split equally on left/right rather than warping the spacing.
-    const studsRowWidth = studCount * STUD_PITCH
-    const studRowStartX = (w - studsRowWidth) / 2
+
+    // Fit the row to span exactly w: ceil makes the conceptual 1×N brick at
+    // least as wide as the card, so pitch = w / N is ≤ target. The first
+    // stud sits at 0.5·pitch from x=0 and the last at w − 0.5·pitch, which
+    // is the canonical real-LEGO arrangement (0.2P gutter at each end,
+    // 0.4P between adjacent studs) without any manual centering.
+    const studCount = w > 0 ? Math.max(2, Math.ceil(w / STUD_PITCH_TARGET)) : 6
+    const pitch = w > 0 ? w / studCount : STUD_PITCH_TARGET
+    const studW = 0.6 * pitch
+    const studBodyH = 0.225 * pitch
+    const studCapRy = Math.max(2, (studW / 2) * DEPTH_Y_RATIO)
 
     return (
         <div
@@ -138,6 +154,13 @@ export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps)
                         </linearGradient>
                     </defs>
 
+                    {/* Painter's algorithm: SVG paints in document order, so we
+                        emit surfaces back-to-front.
+                          1. TOP face   — the plane studs sit on
+                          2. RIGHT face — shares the back-right edge of the top
+                          3. FRONT face — closest wall, shares the front edge of the top
+                          4. Studs      — drawn on top of the chassis */}
+
                     {/* TOP face (lit) */}
                     <polygon
                         points={`0,${PAD_TOP} ${w},${PAD_TOP} ${w + DEPTH_X},${PAD_TOP - DEPTH_Y} ${DEPTH_X},${PAD_TOP - DEPTH_Y}`}
@@ -165,52 +188,50 @@ export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps)
                         strokeLinejoin="miter"
                     />
 
-                    {/* Studs — each centered on a P × P cell of the top face,
-                        sitting at mid-depth and rising STUD_BODY_H straight up */}
+                    {/* Studs — each centered on its own P-cell of the top face,
+                        sitting at chassis mid-depth and rising studBodyH up */}
                     {Array.from({ length: studCount }, (_, i) => {
-                        // Stud center on the front-face X axis (LEGO: P/2 + i·P from row start)
-                        const fx = studRowStartX + (i + 0.5) * STUD_PITCH
-                        // Project to mid-depth (depth_z = P/2) on the top face
+                        const fx = (i + 0.5) * pitch
                         const baseX = fx + DEPTH_X / 2
                         const baseY = PAD_TOP - DEPTH_Y / 2
-                        const bodyTopY = baseY - STUD_BODY_H
-                        const bodyX = baseX - STUD_W / 2
+                        const bodyTopY = baseY - studBodyH
+                        const bodyX = baseX - studW / 2
                         return (
                             <g key={i}>
                                 {/* Cylinder body — the side wall of the stud */}
                                 <rect
                                     x={bodyX}
                                     y={bodyTopY}
-                                    width={STUD_W}
-                                    height={STUD_BODY_H}
+                                    width={studW}
+                                    height={studBodyH}
                                     fill={p.studBody}
                                     stroke="#000"
                                     strokeWidth={1.5}
                                 />
                                 {/* Side shadow on the cylinder body (right edge slightly darker) */}
                                 <rect
-                                    x={bodyX + STUD_W * 0.65}
+                                    x={bodyX + studW * 0.65}
                                     y={bodyTopY + 1}
-                                    width={STUD_W * 0.32}
-                                    height={STUD_BODY_H - 2}
+                                    width={studW * 0.32}
+                                    height={studBodyH - 2}
                                     fill="rgba(0,0,0,0.18)"
                                 />
                                 {/* Oval cap on top */}
                                 <ellipse
                                     cx={baseX}
                                     cy={bodyTopY}
-                                    rx={STUD_W / 2}
-                                    ry={STUD_CAP_RY}
+                                    rx={studW / 2}
+                                    ry={studCapRy}
                                     fill={p.studCap}
                                     stroke="#000"
                                     strokeWidth={1.5}
                                 />
                                 {/* Cap highlight */}
                                 <ellipse
-                                    cx={baseX - STUD_W * 0.18}
+                                    cx={baseX - studW * 0.18}
                                     cy={bodyTopY - 0.6}
-                                    rx={STUD_W * 0.22}
-                                    ry={STUD_CAP_RY * 0.5}
+                                    rx={studW * 0.22}
+                                    ry={studCapRy * 0.5}
                                     fill="rgba(255,255,255,0.55)"
                                 />
                             </g>

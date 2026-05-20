@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertCircle } from 'lucide-react'
 import { BrickPreview3D } from './BrickPreview3D'
@@ -13,13 +12,11 @@ interface OutputPanelProps {
 }
 
 export function OutputPanel({ jobId, job, submissionError }: OutputPanelProps) {
-    const [previewBroken, setPreviewBroken] = useState(false)
-
     // A pre-poll submission error overrides job state — display it as a failure.
     const isFailed = job.status === 'failed' || submissionError !== null
     const errorMessage = submissionError ?? job.error
     const status = isFailed ? 'failed' : job.status
-    const { progress, queuePosition, downloadUrl, previewUrl } = job
+    const { progress, queuePosition, downloadUrl } = job
 
     return (
         <div className="flex flex-col h-full">
@@ -179,20 +176,9 @@ export function OutputPanel({ jobId, job, submissionError }: OutputPanelProps) {
                         transition={{ duration: 0.25 }}
                         className="flex flex-col h-full"
                     >
-                        {previewUrl && !previewBroken ? (
-                            <div className="flex-1 glass rounded-xl overflow-hidden flex items-center justify-center bg-zinc-100/40 dark:bg-zinc-900/40 p-4 min-h-[300px]">
-                                <img
-                                    src={previewUrl}
-                                    alt="Mosaic preview"
-                                    className="max-h-[280px] max-w-full object-contain rounded-lg"
-                                    onError={() => setPreviewBroken(true)}
-                                />
-                            </div>
-                        ) : (
-                            <div className="flex-1 min-h-[300px]">
-                                <BrickPreview3D />
-                            </div>
-                        )}
+                        <div className="flex-1 min-h-[300px]">
+                            <BrickPreview3D downloadUrl={downloadUrl} />
+                        </div>
 
                         <div className="mt-3 glass rounded-xl p-4">
                             <StripeCheckoutPanel jobId={jobId} downloadUrl={downloadUrl} />

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw, DownloadIcon } from 'lucide-react'
 import { Button } from '../ui/Button'
 
 const SIZE = 120
@@ -61,15 +61,17 @@ const DEFAULT_ROT = { x: -22, y: 26 }
 
 interface BrickPreview3DProps {
     autoRotate?: boolean
+    /** When set, the bottom-right download button becomes an active link to this URL. */
+    downloadUrl?: string | null
 }
 
 /**
- * Idle 3D preview cube. Auto-rotation runs on the compositor via a CSS
+ * Persistent 3D preview cube. Auto-rotation runs on the compositor via a CSS
  * keyframe (.brick-auto-spin) — no per-frame React render. Once the user
  * drags, we switch to inline transforms and keep the user's rotation until
  * they hit Reset, which clears the override and resumes the CSS spin.
  */
-export function BrickPreview3D({ autoRotate = true }: BrickPreview3DProps) {
+export function BrickPreview3D({ autoRotate = true, downloadUrl = null }: BrickPreview3DProps) {
     // null = use CSS auto-rotation; object = user has taken manual control
     const [userRot, setUserRot] = useState<{ x: number; y: number } | null>(null)
     const [dragging, setDragging] = useState(false)
@@ -196,6 +198,29 @@ export function BrickPreview3D({ autoRotate = true }: BrickPreview3DProps) {
                 <p className="absolute bottom-3 text-[11px] text-zinc-400 dark:text-zinc-600 pointer-events-none">
                     Drag to rotate · convert your image to see the real preview
                 </p>
+
+                {downloadUrl ? (
+                    <a
+                        href={downloadUrl}
+                        download
+                        rel="noopener noreferrer"
+                        aria-label="Download build pack"
+                        title="Download build pack"
+                        className="absolute bottom-3 right-3 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-800 dark:text-zinc-100 shadow-lg shadow-black/10 transition-all hover:bg-white dark:hover:bg-zinc-900 hover:scale-105 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
+                    >
+                        <DownloadIcon size={16} />
+                    </a>
+                ) : (
+                    <button
+                        type="button"
+                        disabled
+                        aria-label="Download build pack (available after conversion)"
+                        title="Available after conversion"
+                        className="absolute bottom-3 right-3 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-400 dark:text-zinc-600 shadow-lg shadow-black/5 opacity-60 cursor-not-allowed"
+                    >
+                        <DownloadIcon size={16} />
+                    </button>
+                )}
             </div>
         </div>
     )
