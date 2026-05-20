@@ -61,7 +61,7 @@ function reducer(state: JobState, action: Action): JobState {
     }
 }
 
-const POLL_INTERVAL_MS = 750
+const POLL_INTERVAL_MS = 800
 
 /**
  * Subscribes to /jobs/:id while jobId is set, exposing a derived JobState.
