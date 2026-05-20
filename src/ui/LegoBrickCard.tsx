@@ -244,7 +244,7 @@ export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps)
                 so it reads as part of the surface rather than a white panel.
                 The wrapper's padding shows the LEGO color as a frame around it. */}
             <div ref={ref} className="relative z-[1] p-3 sm:p-4">
-                <div className="relative rounded-lg bg-zinc-50 dark:bg-zinc-950 border border-black/30 dark:border-white/10 p-5 sm:p-6 shadow-[inset_0_2px_6px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_2px_10px_rgba(0,0,0,0.55)]">
+                <div className="relative rounded-lg bg-zinc-50 dark:bg-zinc-950 border border-black/30 dark:border-white/10 px-5 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 shadow-[inset_0_2px_6px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_2px_10px_rgba(0,0,0,0.55)]">
                     {children}
                 </div>
             </div>

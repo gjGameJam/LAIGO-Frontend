@@ -129,20 +129,20 @@ export function BrickPreview3D({ autoRotate = true, downloadUrl = null }: BrickP
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 h-5">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 leading-none">
                         3D Preview
                     </span>
                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20">
                         <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-                        <span className="text-xs text-violet-500 dark:text-violet-400 font-medium">
+                        <span className="text-xs leading-none text-violet-500 dark:text-violet-400 font-medium">
                             Placeholder
                         </span>
                     </div>
                 </div>
-                <Button variant="secondary" size="sm" onClick={reset} className="gap-1.5">
-                    <RotateCcw size={13} /> Reset
+                <Button variant="secondary" size="sm" onClick={reset} className="gap-1.5 px-2.5 py-0.5 leading-none">
+                    <RotateCcw size={12} /> Reset
                 </Button>
             </div>
 
