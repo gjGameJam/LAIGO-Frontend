@@ -38,6 +38,52 @@ export interface JobResponse {
     error?: string | null
 }
 
+export interface PreviewPalette {
+    hex: string
+    element_id: number | null
+}
+
+export interface PreviewFrame {
+    thickness_studs: number
+    height_plates: number
+    palette_index: number
+}
+
+export interface PreviewData {
+    schema_version: number
+    job_id: string
+    mosaic_type: '2d' | '3d'
+    width_studs: number
+    height_studs: number
+    block_width: number
+    block_height: number
+    has_frame: boolean
+    foreground_lift_plates: number
+    frame: PreviewFrame
+    palette: PreviewPalette[]
+    background_grid: number[][]
+    /** Present only when mosaic_type === '3d'. -1 sentinel = no foreground at this cell. */
+    foreground_grid?: number[][]
+}
+
+/** Highest schema_version this frontend knows how to render. */
+export const SUPPORTED_PREVIEW_SCHEMA = 1
+
+export type PreviewErrorCode =
+    | 'PREVIEW_NOT_AVAILABLE'
+    | 'PREVIEW_CORRUPTED'
+    | 'PREVIEW_SCHEMA_TOO_NEW'
+    | 'PREVIEW_UNKNOWN'
+
+export class PreviewError extends Error {
+    code: PreviewErrorCode
+    constructor(code: PreviewErrorCode, message: string) {
+        super(message)
+        this.name = 'PreviewError'
+        this.code = code
+    }
+}
+
 export interface BuildFormDataInput {
     file: File
     intValue: number
@@ -55,11 +101,32 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
     const text = await res.text().catch(() => '')
     if (!text) return fallback
     try {
-        const parsed = JSON.parse(text) as { detail?: string; error?: string; message?: string }
-        return parsed.detail ?? parsed.error ?? parsed.message ?? fallback
+        const parsed = JSON.parse(text) as { detail?: unknown; error?: string; message?: string }
+        // Modern backend contract is `{detail: {error, code}}`; legacy is `{detail: string}`.
+        if (parsed.detail && typeof parsed.detail === 'object') {
+            const d = parsed.detail as { error?: string }
+            return d.error ?? fallback
+        }
+        if (typeof parsed.detail === 'string') return parsed.detail
+        return parsed.error ?? parsed.message ?? fallback
     } catch {
         // Plain-text or HTML — truncate to keep error messages user-friendly.
         return text.length > 240 ? text.slice(0, 240) + '…' : text
+    }
+}
+
+/**
+ * Pull a structured error code out of `{detail: {error, code}}` bodies.
+ * Returns null when the response doesn't use the modern contract.
+ */
+async function readErrorCode(res: Response): Promise<string | null> {
+    const text = await res.clone().text().catch(() => '')
+    if (!text) return null
+    try {
+        const parsed = JSON.parse(text) as { detail?: { code?: string } }
+        return parsed.detail?.code ?? null
+    } catch {
+        return null
     }
 }
 
@@ -113,6 +180,38 @@ export async function getJob(jobId: string, signal?: AbortSignal): Promise<JobRe
 
 export function getDownloadUrl(jobId: string): string {
     return `${API}/jobs/${jobId}/download`
+}
+
+export function getPreviewUrl(jobId: string): string {
+    return `${API}/jobs/${jobId}/preview`
+}
+
+export async function getPreview(jobId: string, signal?: AbortSignal): Promise<PreviewData> {
+    log('GET →', `${API}/jobs/${jobId}/preview`)
+    const res = await fetch(`${API}/jobs/${jobId}/preview`, { signal })
+    if (!res.ok) {
+        // Switch on detail.code rather than the error string (the backend
+        // may reword the message). Unknown codes fall back to PREVIEW_UNKNOWN.
+        const code = await readErrorCode(res)
+        const message = await readErrorMessage(res, 'Preview unavailable')
+        errLog('Preview fetch failed:', res.status, code, message)
+        if (code === 'PREVIEW_NOT_AVAILABLE') {
+            throw new PreviewError('PREVIEW_NOT_AVAILABLE', message)
+        }
+        if (code === 'PREVIEW_CORRUPTED') {
+            throw new PreviewError('PREVIEW_CORRUPTED', message)
+        }
+        throw new PreviewError('PREVIEW_UNKNOWN', message)
+    }
+    const data = (await res.json()) as PreviewData
+    log('Preview response: schema', data.schema_version, `${data.width_studs}x${data.height_studs}`)
+    if (data.schema_version > SUPPORTED_PREVIEW_SCHEMA) {
+        throw new PreviewError(
+            'PREVIEW_SCHEMA_TOO_NEW',
+            `Preview schema ${data.schema_version} is newer than this build (supports ${SUPPORTED_PREVIEW_SCHEMA}). Please refresh.`,
+        )
+    }
+    return data
 }
 
 export function buildFormData(values: BuildFormDataInput): FormData {

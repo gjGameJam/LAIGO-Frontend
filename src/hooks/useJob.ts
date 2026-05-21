@@ -1,5 +1,13 @@
 import { useEffect, useReducer } from 'react'
-import { getDownloadUrl, getJob, type JobStatusValue } from '../api'
+import {
+    getDownloadUrl,
+    getJob,
+    getPreview,
+    PreviewError,
+    type JobStatusValue,
+    type PreviewData,
+    type PreviewErrorCode,
+} from '../api'
 
 export type JobStatus = 'idle' | JobStatusValue
 
@@ -9,6 +17,11 @@ export interface JobState {
     queuePosition: number | null
     downloadUrl: string | null
     previewUrl: string | null
+    previewData: PreviewData | null
+    /** Set when preview fetch fails for a reason worth surfacing (corrupted file,
+     *  schema mismatch). PREVIEW_NOT_AVAILABLE stays null since the placeholder
+     *  cube is the appropriate fallback. */
+    previewError: { code: PreviewErrorCode; message: string } | null
     error: string | null
 }
 
@@ -18,6 +31,8 @@ const IDLE: JobState = {
     queuePosition: null,
     downloadUrl: null,
     previewUrl: null,
+    previewData: null,
+    previewError: null,
     error: null,
 }
 
@@ -26,6 +41,8 @@ type Action =
     | { type: 'queued'; queuePosition: number | null }
     | { type: 'running'; progress: number }
     | { type: 'complete'; downloadUrl: string; previewUrl: string | null }
+    | { type: 'previewLoaded'; data: PreviewData }
+    | { type: 'previewError'; code: PreviewErrorCode; message: string }
     | { type: 'failed'; error: string }
 
 function reducer(state: JobState, action: Action): JobState {
@@ -54,6 +71,10 @@ function reducer(state: JobState, action: Action): JobState {
                 previewUrl: action.previewUrl,
                 error: null,
             }
+        case 'previewLoaded':
+            return { ...state, previewData: action.data, previewError: null }
+        case 'previewError':
+            return { ...state, previewError: { code: action.code, message: action.message } }
         case 'failed':
             return { ...state, status: 'failed', queuePosition: null, progress: 0, error: action.error }
         default:
@@ -105,6 +126,25 @@ export function useJob(jobId: string | null): JobState {
                         downloadUrl: getDownloadUrl(jobId),
                         previewUrl: job.preview_url ?? null,
                     })
+                    // Fire-and-forget preview fetch. The download still works
+                    // regardless of how this resolves:
+                    //   PREVIEW_NOT_AVAILABLE → silent (placeholder cube stays)
+                    //   PREVIEW_CORRUPTED / schema mismatch → surface in UI
+                    getPreview(jobId, controller.signal)
+                        .then((data) => {
+                            if (!cancelled) dispatch({ type: 'previewLoaded', data })
+                        })
+                        .catch((err) => {
+                            if (cancelled || controller.signal.aborted) return
+                            if (err instanceof PreviewError && err.code === 'PREVIEW_NOT_AVAILABLE') {
+                                return
+                            }
+                            const code =
+                                err instanceof PreviewError ? err.code : 'PREVIEW_UNKNOWN'
+                            const message =
+                                err instanceof Error ? err.message : 'Preview unavailable'
+                            dispatch({ type: 'previewError', code, message })
+                        })
                     return
                 } else if (job.status === 'failed') {
                     dispatch({ type: 'failed', error: job.error ?? 'Job failed' })

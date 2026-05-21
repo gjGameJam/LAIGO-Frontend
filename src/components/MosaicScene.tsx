@@ -1,0 +1,266 @@
+import { useMemo, useRef, useEffect, useImperativeHandle, useState, forwardRef } from 'react'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
+import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import type { PreviewData } from '../api'
+
+// LEGO real-world ratios in stud-units (1 unit = 1 stud = 8mm).
+const STUD_PITCH = 1
+const PLATE_H = 3.2 / 8 // 0.4
+const STUD_H = 1.8 / 8 // 0.225
+const STUD_R = 2.4 / 8 // 0.3
+const BASEPLATE_COLOR = '#222226'
+
+// One merged geometry shared across every InstancedMesh — only the matrix and
+// material change per instance/color. Built lazily on first scene mount so we
+// don't pay for it when the placeholder cube is showing.
+let cachedStudGeom: THREE.BufferGeometry | null = null
+function getStudGeometry(): THREE.BufferGeometry {
+    if (cachedStudGeom) return cachedStudGeom
+    const plate = new THREE.BoxGeometry(STUD_PITCH, PLATE_H, STUD_PITCH)
+    plate.translate(0, PLATE_H / 2, 0)
+    const stud = new THREE.CylinderGeometry(STUD_R, STUD_R, STUD_H, 12)
+    stud.translate(0, PLATE_H + STUD_H / 2, 0)
+    const merged = mergeGeometries([plate, stud])
+    if (!merged) throw new Error('Failed to merge stud geometry')
+    cachedStudGeom = merged
+    return merged
+}
+
+interface InstanceGroup {
+    paletteIdx: number
+    hex: string
+    positions: Float32Array // tightly packed [x, baseY, z, x, baseY, z, ...]
+    count: number
+}
+
+/**
+ * Bucket every stud (background + foreground) by palette index so we can
+ * render one InstancedMesh per unique color — a few draw calls instead of
+ * one per stud. Handles the 400k-cell worst case cleanly.
+ */
+function useStudGroups(data: PreviewData): InstanceGroup[] {
+    return useMemo(() => {
+        const buckets = new Map<number, number[]>()
+        const push = (idx: number, x: number, y: number, z: number) => {
+            let arr = buckets.get(idx)
+            if (!arr) {
+                arr = []
+                buckets.set(idx, arr)
+            }
+            arr.push(x, y, z)
+        }
+
+        const { background_grid, foreground_grid, foreground_lift_plates, palette } = data
+        const liftY = foreground_lift_plates * PLATE_H
+
+        // Center the mosaic on origin so OrbitControls orbits the middle.
+        const cols = background_grid[0]?.length ?? 0
+        const rows = background_grid.length
+        const offsetX = -(cols - 1) / 2
+        const offsetZ = -(rows - 1) / 2
+
+        for (let row = 0; row < rows; row++) {
+            const r = background_grid[row]
+            for (let col = 0; col < cols; col++) {
+                const idx = r[col]
+                if (idx < 0) continue
+                push(idx, col + offsetX, 0, row + offsetZ)
+            }
+        }
+
+        if (foreground_grid) {
+            for (let row = 0; row < foreground_grid.length; row++) {
+                const r = foreground_grid[row]
+                for (let col = 0; col < r.length; col++) {
+                    const idx = r[col]
+                    if (idx === -1) continue
+                    push(idx, col + offsetX, liftY, row + offsetZ)
+                }
+            }
+        }
+
+        return Array.from(buckets.entries()).map(([paletteIdx, flat]) => {
+            const positions = new Float32Array(flat)
+            return {
+                paletteIdx,
+                hex: palette[paletteIdx]?.hex ?? '#000000',
+                positions,
+                count: flat.length / 3,
+            }
+        })
+    }, [data])
+}
+
+function StudInstances({ group }: { group: InstanceGroup }) {
+    const meshRef = useRef<THREE.InstancedMesh>(null)
+    const geom = useMemo(() => getStudGeometry(), [])
+
+    useEffect(() => {
+        const mesh = meshRef.current
+        if (!mesh) return
+        const dummy = new THREE.Object3D()
+        const { positions, count } = group
+        for (let i = 0; i < count; i++) {
+            const x = positions[i * 3]
+            const y = positions[i * 3 + 1]
+            const z = positions[i * 3 + 2]
+            dummy.position.set(x, y, z)
+            dummy.updateMatrix()
+            mesh.setMatrixAt(i, dummy.matrix)
+        }
+        mesh.instanceMatrix.needsUpdate = true
+    }, [group])
+
+    return (
+        <instancedMesh ref={meshRef} args={[geom, undefined, group.count]} castShadow receiveShadow>
+            <meshStandardMaterial color={group.hex} roughness={0.55} metalness={0.05} />
+        </instancedMesh>
+    )
+}
+
+function Baseplate({ widthStuds, heightStuds, hasFrame }: { widthStuds: number; heightStuds: number; hasFrame: boolean }) {
+    const w = widthStuds + (hasFrame ? 2 : 0)
+    const h = heightStuds + (hasFrame ? 2 : 0)
+    return (
+        <mesh position={[0, -PLATE_H / 2, 0]} receiveShadow>
+            <boxGeometry args={[w, PLATE_H, h]} />
+            <meshStandardMaterial color={BASEPLATE_COLOR} roughness={0.85} />
+        </mesh>
+    )
+}
+
+function Frame({ data }: { data: PreviewData }) {
+    if (!data.has_frame) return null
+    const { width_studs, height_studs, frame, palette } = data
+    const t = frame.thickness_studs
+    const fh = frame.height_plates * PLATE_H
+    const color = palette[frame.palette_index]?.hex ?? '#1B2A34'
+
+    // The mosaic occupies cells centered on origin. With the centering offset,
+    // the leftmost stud center is at -W/2 + 0.5, rightmost at W/2 - 0.5. The
+    // frame sits one stud OUTSIDE that on every edge.
+    const halfW = width_studs / 2
+    const halfH = height_studs / 2
+    const yCenter = fh / 2
+
+    return (
+        <group>
+            {/* Top edge (negative Z) */}
+            <mesh position={[0, yCenter, -halfH - t / 2]} castShadow receiveShadow>
+                <boxGeometry args={[width_studs + 2 * t, fh, t]} />
+                <meshStandardMaterial color={color} roughness={0.6} />
+            </mesh>
+            {/* Bottom edge (positive Z) */}
+            <mesh position={[0, yCenter, halfH + t / 2]} castShadow receiveShadow>
+                <boxGeometry args={[width_studs + 2 * t, fh, t]} />
+                <meshStandardMaterial color={color} roughness={0.6} />
+            </mesh>
+            {/* Left edge (negative X) */}
+            <mesh position={[-halfW - t / 2, yCenter, 0]} castShadow receiveShadow>
+                <boxGeometry args={[t, fh, height_studs]} />
+                <meshStandardMaterial color={color} roughness={0.6} />
+            </mesh>
+            {/* Right edge (positive X) */}
+            <mesh position={[halfW + t / 2, yCenter, 0]} castShadow receiveShadow>
+                <boxGeometry args={[t, fh, height_studs]} />
+                <meshStandardMaterial color={color} roughness={0.6} />
+            </mesh>
+        </group>
+    )
+}
+
+interface MosaicSceneContentProps {
+    data: PreviewData
+}
+
+function MosaicSceneContent({ data }: MosaicSceneContentProps) {
+    const groups = useStudGroups(data)
+    return (
+        <>
+            <ambientLight intensity={0.55} />
+            <directionalLight
+                position={[12, 18, 10]}
+                intensity={1.1}
+                castShadow
+                shadow-mapSize-width={1024}
+                shadow-mapSize-height={1024}
+            />
+            <directionalLight position={[-8, 6, -4]} intensity={0.35} />
+            <Baseplate
+                widthStuds={data.width_studs}
+                heightStuds={data.height_studs}
+                hasFrame={data.has_frame}
+            />
+            <Frame data={data} />
+            {groups.map((g) => (
+                <StudInstances key={g.paletteIdx} group={g} />
+            ))}
+        </>
+    )
+}
+
+export interface MosaicSceneHandle {
+    reset: () => void
+}
+
+interface MosaicSceneProps {
+    data: PreviewData
+    autoRotate?: boolean
+}
+
+/**
+ * Three.js mosaic preview. Wraps the canvas, lighting, camera, and orbit
+ * controls — caller just passes preview JSON. Exposes a `reset()` imperative
+ * handle so the parent's Reset button can recenter the camera.
+ */
+export const MosaicScene = forwardRef<MosaicSceneHandle, MosaicSceneProps>(function MosaicScene(
+    { data, autoRotate = true },
+    ref,
+) {
+    const controlsRef = useRef<React.ComponentRef<typeof OrbitControls> | null>(null)
+    // Once the user actively rotates/drags, freeze auto-rotation until Reset.
+    // Wheel zoom doesn't fire pointerdown, so it stays spinning on zoom alone.
+    const [userStopped, setUserStopped] = useState(false)
+
+    useImperativeHandle(ref, () => ({
+        reset: () => {
+            controlsRef.current?.reset()
+            setUserStopped(false)
+        },
+    }))
+
+    // Worst case during rotation: the mosaic's diagonal sweeps across the view,
+    // so fit camera distance to the diagonal (plus frame) to keep corners on
+    // screen at all rotation angles.
+    const diag = Math.hypot(data.width_studs, data.height_studs) + 2
+    const camDistance = diag * 0.7
+    const cameraPos: [number, number, number] = [camDistance * 0.55, camDistance * 0.85, camDistance * 0.75]
+    const span = Math.max(data.width_studs, data.height_studs)
+
+    return (
+        <Canvas
+            shadows
+            dpr={[1, 2]}
+            camera={{ position: cameraPos, fov: 45, near: 0.1, far: diag * 8 }}
+            gl={{ antialias: true, alpha: true }}
+            style={{ background: 'transparent' }}
+            onPointerDown={() => setUserStopped(true)}
+        >
+            <OrbitControls
+                ref={controlsRef}
+                makeDefault
+                enablePan={false}
+                enableDamping
+                dampingFactor={0.12}
+                autoRotate={autoRotate && !userStopped}
+                autoRotateSpeed={0.8}
+                minDistance={span * 0.4}
+                maxDistance={span * 3}
+                maxPolarAngle={Math.PI / 2.05}
+            />
+            <MosaicSceneContent data={data} />
+        </Canvas>
+    )
+})

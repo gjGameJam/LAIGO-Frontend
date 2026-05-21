@@ -16,7 +16,14 @@
       "Bash(NODE_OPTIONS=\"--use-system-ca\" npm uninstall @radix-ui/react-label @radix-ui/react-switch class-variance-authority tailwind-merge)",
       "Bash(echo \"EXIT=$?\")",
       "Bash(tasklist /FI \"IMAGENAME eq node.exe\" /FO TABLE)",
-      "PowerShell(Get-Process *)"
+      "PowerShell(Get-Process *)",
+      "Bash(git check-ignore *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":5173 :5174 :3000 :4173 LISTENING\")",
+      "Bash(tasklist /FI \"PID eq 17704\" /FI \"PID eq 20640\" /V /FO LIST)",
+      "PowerShell(Get-CimInstance *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(node *)"
     ]
   }
 }

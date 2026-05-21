@@ -16,7 +16,7 @@ export function OutputPanel({ jobId, job, submissionError }: OutputPanelProps) {
     const isFailed = job.status === 'failed' || submissionError !== null
     const errorMessage = submissionError ?? job.error
     const status = isFailed ? 'failed' : job.status
-    const { progress, queuePosition, downloadUrl } = job
+    const { progress, queuePosition, downloadUrl, previewData, previewError } = job
 
     return (
         <div className="flex flex-col h-full">
@@ -177,7 +177,11 @@ export function OutputPanel({ jobId, job, submissionError }: OutputPanelProps) {
                         className="flex flex-col h-full"
                     >
                         <div className="flex-1 min-h-[300px]">
-                            <BrickPreview3D downloadUrl={downloadUrl} />
+                            <BrickPreview3D
+                                downloadUrl={downloadUrl}
+                                previewData={previewData}
+                                previewError={previewError}
+                            />
                         </div>
 
                         <div className="mt-3 glass rounded-xl p-4">
