@@ -1,7 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
-import { RotateCcw, DownloadIcon, AlertTriangle } from 'lucide-react'
-import { MosaicScene, type MosaicSceneHandle } from './MosaicScene'
+import { AnimatePresence } from 'framer-motion'
+import { RotateCcw, DownloadIcon, AlertTriangle, Maximize2 } from 'lucide-react'
+import { MosaicScene, type MosaicSceneHandle, type Vec3Tuple } from './MosaicScene'
+import { MosaicExpandedView } from './MosaicExpandedView'
 import type { PreviewData, PreviewErrorCode } from '../api'
+
+interface ExpandedCameraState {
+    initialCamera: { position: Vec3Tuple; target: Vec3Tuple } | null
+    initialUserStopped: boolean
+}
 
 const CUBE_SIZE = 120
 const CUBE_HALF = CUBE_SIZE / 2
@@ -83,6 +90,31 @@ export function BrickPreview3D({
 }: BrickPreview3DProps) {
     const sceneRef = useRef<MosaicSceneHandle | null>(null)
     const hasPreview = previewData !== null
+    const [isExpanded, setIsExpanded] = useState(false)
+    const [expandedCam, setExpandedCam] = useState<ExpandedCameraState | null>(null)
+
+    const openExpanded = () => {
+        // Snapshot the small preview's camera so the modal opens at the same
+        // angle/zoom. Falls back to MosaicScene's default framing if the
+        // scene hasn't mounted (shouldn't happen — button is gated on hasPreview).
+        const snap = sceneRef.current?.getCameraState() ?? null
+        setExpandedCam(
+            snap
+                ? {
+                      initialCamera: { position: snap.position, target: snap.target },
+                      initialUserStopped: !snap.isAutoRotating,
+                  }
+                : null,
+        )
+        setIsExpanded(true)
+    }
+
+    // Auto-close the modal if the underlying data disappears (e.g., user kicks
+    // off a new job while the modal is open and previewData resets to null).
+    // Adjusting state during render is the React-recommended pattern for
+    // state that depends on a changing prop. See:
+    // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    if (!hasPreview && isExpanded) setIsExpanded(false)
 
     return (
         <div className="flex flex-col h-full">
@@ -103,18 +135,31 @@ export function BrickPreview3D({
                     <PlaceholderCube autoRotate={autoRotate} />
                 )}
 
-                <button
-                    type="button"
-                    onClick={() => {
-                        if (hasPreview) sceneRef.current?.reset()
-                        else window.dispatchEvent(new Event('brick-preview-reset'))
-                    }}
-                    aria-label="Reset view"
-                    title="Reset view"
-                    className="absolute top-3 right-3 inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-700 dark:text-zinc-200 shadow-md shadow-black/10 transition-all hover:bg-white dark:hover:bg-zinc-900 hover:scale-105 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
-                >
-                    <RotateCcw size={14} />
-                </button>
+                <div className="absolute top-3 right-3 flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (hasPreview) sceneRef.current?.reset()
+                            else window.dispatchEvent(new Event('brick-preview-reset'))
+                        }}
+                        aria-label="Reset view"
+                        title="Reset view"
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-700 dark:text-zinc-200 shadow-md shadow-black/10 transition-all hover:bg-white dark:hover:bg-zinc-900 hover:scale-105 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
+                    >
+                        <RotateCcw size={14} />
+                    </button>
+                    {hasPreview && (
+                        <button
+                            type="button"
+                            onClick={openExpanded}
+                            aria-label="Expand preview"
+                            title="Expand preview"
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-700 dark:text-zinc-200 shadow-md shadow-black/10 transition-all hover:bg-white dark:hover:bg-zinc-900 hover:scale-105 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
+                        >
+                            <Maximize2 size={14} />
+                        </button>
+                    )}
+                </div>
 
                 {previewError ? (
                     <div className="absolute bottom-3 left-3 right-16 flex items-center gap-2 rounded-md bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
@@ -152,6 +197,17 @@ export function BrickPreview3D({
                     </button>
                 )}
             </div>
+
+            <AnimatePresence>
+                {isExpanded && previewData && (
+                    <MosaicExpandedView
+                        data={previewData}
+                        onClose={() => setIsExpanded(false)}
+                        initialCamera={expandedCam?.initialCamera ?? null}
+                        initialUserStopped={expandedCam?.initialUserStopped ?? false}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     )
 }

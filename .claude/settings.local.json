@@ -23,7 +23,10 @@
       "Bash(tasklist /FI \"PID eq 17704\" /FI \"PID eq 20640\" /V /FO LIST)",
       "PowerShell(Get-CimInstance *)",
       "PowerShell(Stop-Process *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(findstr /R \"z-[0-9]\" src\\\\**\\\\*.tsx src\\\\**\\\\*.css)",
+      "Bash(findstr package.json)",
+      "WebFetch(domain:lucide.dev)"
     ]
   }
 }

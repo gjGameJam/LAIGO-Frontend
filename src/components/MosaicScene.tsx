@@ -1,9 +1,18 @@
 import { useMemo, useRef, useEffect, useImperativeHandle, useState, forwardRef } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { PreviewData } from '../api'
+
+export type Vec3Tuple = [number, number, number]
+
+export interface CameraState {
+    position: Vec3Tuple
+    target: Vec3Tuple
+    /** True if auto-rotation is still active (user hasn't manually moved the camera). */
+    isAutoRotating: boolean
+}
 
 // LEGO real-world ratios in stud-units (1 unit = 1 stud = 8mm).
 const STUD_PITCH = 1
@@ -203,11 +212,66 @@ function MosaicSceneContent({ data }: MosaicSceneContentProps) {
 
 export interface MosaicSceneHandle {
     reset: () => void
+    /** Snapshot the current camera + controls state — used to hand off the view
+     *  when popping the small preview into the expanded modal. Returns null
+     *  before the scene has finished mounting. */
+    getCameraState: () => CameraState | null
 }
 
 interface MosaicSceneProps {
     data: PreviewData
     autoRotate?: boolean
+    /** When provided, the scene mounts with the camera at this position/target
+     *  instead of the default diagonal-fit framing. */
+    initialCamera?: { position: Vec3Tuple; target: Vec3Tuple } | null
+    /** When true, the scene mounts in the "user has interacted" state — no
+     *  auto-rotation until Reset is pressed. */
+    initialUserStopped?: boolean
+}
+
+type ControlsHandle = React.ComponentRef<typeof OrbitControls>
+
+/**
+ * Internal bridge: lets the parent imperative handle reach the Canvas's
+ * camera + controls (which only exist inside the r3f tree).
+ */
+interface CameraBridgeRef {
+    camera: THREE.Camera | null
+    controls: ControlsHandle | null
+}
+
+function CameraBridge({
+    bridgeRef,
+    controlsRef,
+    initialCamera,
+}: {
+    bridgeRef: React.MutableRefObject<CameraBridgeRef>
+    controlsRef: React.MutableRefObject<ControlsHandle | null>
+    initialCamera: { position: Vec3Tuple; target: Vec3Tuple } | null | undefined
+}) {
+    const camera = useThree((s) => s.camera)
+    const appliedRef = useRef(false)
+
+    // Keep the bridge populated so getCameraState() can read fresh refs.
+    // Runs after every commit; the controls handle is stable, so this is
+    // effectively a one-shot wiring on first mount.
+    useEffect(() => {
+        bridgeRef.current.camera = camera
+        bridgeRef.current.controls = controlsRef.current
+    })
+
+    useEffect(() => {
+        if (appliedRef.current) return
+        if (!initialCamera) return
+        const controls = controlsRef.current
+        if (!controls) return
+        camera.position.set(...initialCamera.position)
+        controls.target.set(...initialCamera.target)
+        controls.update()
+        appliedRef.current = true
+    }, [camera, controlsRef, initialCamera])
+
+    return null
 }
 
 /**
@@ -216,18 +280,29 @@ interface MosaicSceneProps {
  * handle so the parent's Reset button can recenter the camera.
  */
 export const MosaicScene = forwardRef<MosaicSceneHandle, MosaicSceneProps>(function MosaicScene(
-    { data, autoRotate = true },
+    { data, autoRotate = true, initialCamera = null, initialUserStopped = false },
     ref,
 ) {
-    const controlsRef = useRef<React.ComponentRef<typeof OrbitControls> | null>(null)
+    const controlsRef = useRef<ControlsHandle | null>(null)
+    const bridgeRef = useRef<CameraBridgeRef>({ camera: null, controls: null })
     // Once the user actively rotates/drags, freeze auto-rotation until Reset.
     // Wheel zoom doesn't fire pointerdown, so it stays spinning on zoom alone.
-    const [userStopped, setUserStopped] = useState(false)
+    const [userStopped, setUserStopped] = useState(initialUserStopped)
 
     useImperativeHandle(ref, () => ({
         reset: () => {
             controlsRef.current?.reset()
             setUserStopped(false)
+        },
+        getCameraState: () => {
+            const cam = bridgeRef.current.camera
+            const ctrl = bridgeRef.current.controls
+            if (!cam || !ctrl) return null
+            return {
+                position: [cam.position.x, cam.position.y, cam.position.z],
+                target: [ctrl.target.x, ctrl.target.y, ctrl.target.z],
+                isAutoRotating: autoRotate && !userStopped,
+            }
         },
     }))
 
@@ -236,7 +311,8 @@ export const MosaicScene = forwardRef<MosaicSceneHandle, MosaicSceneProps>(funct
     // screen at all rotation angles.
     const diag = Math.hypot(data.width_studs, data.height_studs) + 2
     const camDistance = diag * 0.7
-    const cameraPos: [number, number, number] = [camDistance * 0.55, camDistance * 0.85, camDistance * 0.75]
+    const defaultCameraPos: Vec3Tuple = [camDistance * 0.55, camDistance * 0.85, camDistance * 0.75]
+    const cameraPos = initialCamera?.position ?? defaultCameraPos
     const span = Math.max(data.width_studs, data.height_studs)
 
     return (
@@ -259,6 +335,11 @@ export const MosaicScene = forwardRef<MosaicSceneHandle, MosaicSceneProps>(funct
                 minDistance={span * 0.4}
                 maxDistance={span * 3}
                 maxPolarAngle={Math.PI / 2.05}
+            />
+            <CameraBridge
+                bridgeRef={bridgeRef}
+                controlsRef={controlsRef}
+                initialCamera={initialCamera}
             />
             <MosaicSceneContent data={data} />
         </Canvas>
