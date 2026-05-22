@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sun, Moon } from 'lucide-react'
+import { Sun, Moon, HelpCircle } from 'lucide-react'
 import clsx from 'clsx'
 import { LaigoWordmark } from './LaigoWordmark'
+import { HelpModal } from './HelpModal'
 
 export type ApiStatus = 'checking' | 'online' | 'offline'
 
@@ -37,6 +39,7 @@ const STATUS_CONFIG: Record<ApiStatus, { label: string; dot: string; text: strin
 
 export function Navbar({ darkMode, onToggleDark, apiStatus }: NavbarProps) {
     const s = STATUS_CONFIG[apiStatus]
+    const [helpOpen, setHelpOpen] = useState(false)
     return (
         <motion.nav
             initial={{ opacity: 0, y: -16 }}
@@ -92,8 +95,23 @@ export function Navbar({ darkMode, onToggleDark, apiStatus }: NavbarProps) {
                             </motion.div>
                         </AnimatePresence>
                     </motion.button>
+
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setHelpOpen(true)}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                        aria-label="Open help"
+                        title="Help"
+                    >
+                        <HelpCircle size={16} />
+                    </motion.button>
                 </div>
             </div>
+
+            <AnimatePresence>
+                {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
+            </AnimatePresence>
         </motion.nav>
     )
 }
