@@ -45,10 +45,6 @@ function SectionLabel({ icon: Icon, children, hint }: { icon: typeof Ruler; chil
     )
 }
 
-function Divider() {
-    return <div className="border-t border-zinc-200 dark:border-zinc-800/60" />
-}
-
 const fadeInUp = {
     initial: { opacity: 0, y: 14 },
     animate: { opacity: 1, y: 0 },
@@ -86,17 +82,15 @@ export function ParameterForm({
     }, [values, onJobSubmit, onSubmissionError])
 
     return (
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
+        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-5 h-full">
             {/* Image */}
             <motion.div {...fadeInUp}>
                 <SectionLabel icon={ImagePlus}>Source Image</SectionLabel>
                 <ImageUpload value={values.image} onChange={set('image')} />
             </motion.div>
 
-            <Divider />
-
             {/* Block Width */}
-            <motion.div {...fadeInUp} transition={{ ...fadeInUp.transition, delay: 0.06 }}>
+            <motion.div {...fadeInUp} transition={{ ...fadeInUp.transition, delay: 0.06 }} className="mt-3">
                 <SectionLabel icon={Ruler} hint={`${values.blockWidth * 16} legos wide`}>
                     Block Width
                 </SectionLabel>
@@ -111,8 +105,6 @@ export function ParameterForm({
                     ariaLabel="Block width"
                 />
             </motion.div>
-
-            <Divider />
 
             {/* Mosaic Type */}
             <motion.div {...fadeInUp} transition={{ ...fadeInUp.transition, delay: 0.12 }}>
@@ -151,8 +143,6 @@ export function ParameterForm({
                 </AnimatePresence>
             </motion.div>
 
-            <Divider />
-
             {/* Framed */}
             <motion.div {...fadeInUp} transition={{ ...fadeInUp.transition, delay: 0.18 }}>
                 <SectionLabel icon={Frame}>Frame</SectionLabel>
@@ -165,10 +155,8 @@ export function ParameterForm({
                 />
             </motion.div>
 
-            <Divider />
-
             {/* Convert */}
-            <motion.div {...fadeInUp} transition={{ ...fadeInUp.transition, delay: 0.24 }}>
+            <motion.div {...fadeInUp} transition={{ ...fadeInUp.transition, delay: 0.24 }} className="mt-auto">
                 <ConvertButton
                     progress={jobProgress}
                     running={jobStatus === 'running'}

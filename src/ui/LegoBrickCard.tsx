@@ -121,7 +121,7 @@ export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps)
 
     return (
         <div
-            className={clsx('relative', className)}
+            className={clsx('relative flex flex-col', className)}
             style={{ paddingTop: PAD_TOP, paddingRight: PAD_RIGHT }}
         >
             {/* Brick chassis: top + right + front faces, plus studs on top */}
@@ -243,8 +243,8 @@ export function LegoBrickCard({ tone, className, children }: LegoBrickCardProps)
             {/* Front-face content — recessed "screen" matched to the page background,
                 so it reads as part of the surface rather than a white panel.
                 The wrapper's padding shows the LEGO color as a frame around it. */}
-            <div ref={ref} className="relative z-[1] p-3 sm:p-4">
-                <div className="relative rounded-lg bg-zinc-50 dark:bg-zinc-950 border border-black/30 dark:border-white/10 px-5 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 shadow-[inset_0_2px_6px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_2px_10px_rgba(0,0,0,0.55)]">
+            <div ref={ref} className="relative z-[1] p-3 sm:p-4 flex-1 flex flex-col">
+                <div className="relative rounded-lg bg-zinc-50 dark:bg-zinc-950 border border-black/30 dark:border-white/10 px-5 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 shadow-[inset_0_2px_6px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_2px_10px_rgba(0,0,0,0.55)] flex-1 flex flex-col">
                     {children}
                 </div>
             </div>

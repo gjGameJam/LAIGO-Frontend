@@ -1,9 +1,26 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertCircle } from 'lucide-react'
+import {
+    AlertCircle,
+    DownloadIcon,
+    PackageIcon,
+    ShoppingCartIcon,
+    HammerIcon,
+} from 'lucide-react'
+import { Button } from '../ui/Button'
 import { BrickPreview3D } from './BrickPreview3D'
 import { StudStackingLoader } from './StudStackingLoader'
 import { StripeCheckoutPanel } from './checkout/StripeCheckoutPanel'
 import type { JobState } from '../hooks/useJob'
+
+// Flip to false to re-enable the Stripe checkout gate on the complete view.
+const USE_LEGACY_NEXT_STEPS = true
+
+const LEGACY_STEPS = [
+    { icon: DownloadIcon, text: 'Download the ZIP file with everything inside.' },
+    { icon: PackageIcon, text: 'Open it — you\'ll find a piece list and instructions.' },
+    { icon: ShoppingCartIcon, text: 'Upload the piece list to Pick a Brick and order parts.' },
+    { icon: HammerIcon, text: 'When they arrive, follow the instructions and build!' },
+]
 
 interface OutputPanelProps {
     jobId: string | null
@@ -184,9 +201,55 @@ export function OutputPanel({ jobId, job, submissionError }: OutputPanelProps) {
                             />
                         </div>
 
-                        <div className="mt-3 glass rounded-xl p-4">
-                            <StripeCheckoutPanel jobId={jobId} downloadUrl={downloadUrl} />
-                        </div>
+                        {USE_LEGACY_NEXT_STEPS ? (
+                            <div className="mt-3 glass rounded-xl p-4">
+                                <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
+                                    Next Steps
+                                </p>
+                                <ol className="space-y-1.5">
+                                    {LEGACY_STEPS.map(({ icon: Icon, text }, i) => (
+                                        <li key={i} className="flex items-start gap-2.5">
+                                            <span className="text-xs font-bold tabular-nums text-violet-600 dark:text-violet-400 shrink-0 w-4">
+                                                {i + 1}.
+                                            </span>
+                                            <Icon size={13} className="text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
+                                            <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                                                {text}
+                                            </p>
+                                        </li>
+                                    ))}
+                                </ol>
+                                <a
+                                    href="https://www.lego.com/en-us/pick-and-build/pick-a-brick?consent-modal=show"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-block mt-2 text-xs text-violet-600 dark:text-violet-400 hover:underline"
+                                >
+                                    lego.com/pick-a-brick →
+                                </a>
+
+                                <div className="mt-4">
+                                    {downloadUrl ? (
+                                        <a
+                                            href={downloadUrl}
+                                            download
+                                            rel="noopener noreferrer"
+                                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-brick-yellow text-zinc-900 hover:bg-brick-yellowLight active:bg-brick-yellowDark border border-zinc-900/10 shadow-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                                        >
+                                            <DownloadIcon size={14} /> Download Build Pack
+                                        </a>
+                                    ) : (
+                                        <Button variant="yellow" size="md" disabled className="w-full">
+                                            <DownloadIcon size={14} /> Download Build Pack
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mt-3 glass rounded-xl p-4">
+                                <StripeCheckoutPanel jobId={jobId} downloadUrl={downloadUrl} />
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>

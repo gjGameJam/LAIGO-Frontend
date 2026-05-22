@@ -148,7 +148,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
                         : 'Image upload zone'
                 }
                 className={[
-                    'relative h-48 rounded-xl border-2 overflow-hidden transition-all duration-200',
+                    'relative h-60 rounded-xl border-2 overflow-hidden transition-all duration-200',
                     !value ? 'cursor-pointer' : '',
                     dragging
                         ? 'border-brick-yellow bg-brick-yellow/[0.08] shadow-[0_0_0_4px_rgba(255,215,0,0.15)]'
