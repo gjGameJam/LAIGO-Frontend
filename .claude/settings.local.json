@@ -26,7 +26,13 @@
       "Bash(node *)",
       "Bash(findstr /R \"z-[0-9]\" src\\\\**\\\\*.tsx src\\\\**\\\\*.css)",
       "Bash(findstr package.json)",
-      "WebFetch(domain:lucide.dev)"
+      "WebFetch(domain:lucide.dev)",
+      "Bash(taskkill //F //IM node.exe)",
+      "WebSearch",
+      "WebFetch(domain:behind-the-scenes.net)",
+      "WebFetch(domain:stefanmuller.com)",
+      "WebFetch(domain:blenderartists.org)",
+      "Bash(git restore *)"
     ]
   }
 }
