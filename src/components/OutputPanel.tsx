@@ -13,7 +13,7 @@ import { StripeCheckoutPanel } from './checkout/StripeCheckoutPanel'
 import type { JobState } from '../hooks/useJob'
 
 // Flip to false to re-enable the Stripe checkout gate on the complete view.
-const USE_LEGACY_NEXT_STEPS = true
+const USE_LEGACY_NEXT_STEPS = false
 
 const LEGACY_STEPS = [
     { icon: DownloadIcon, text: 'Download the ZIP file with everything inside.' },

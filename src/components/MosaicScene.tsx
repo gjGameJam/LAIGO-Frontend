@@ -221,12 +221,15 @@ export interface MosaicSceneHandle {
 interface MosaicSceneProps {
     data: PreviewData
     autoRotate?: boolean
-    /** When provided, the scene mounts with the camera at this position/target
-     *  instead of the default diagonal-fit framing. */
+    /** When provided, the scene mounts with the camera direction taken from
+     *  this position; the distance is still re-fitted to the canvas aspect. */
     initialCamera?: { position: Vec3Tuple; target: Vec3Tuple } | null
     /** When true, the scene mounts in the "user has interacted" state — no
      *  auto-rotation until Reset is pressed. */
     initialUserStopped?: boolean
+    /** Multiplier applied to the minimum bounding-sphere fit distance. 1.0 is
+     *  edge-to-edge; the default leaves room for chrome and rotating corners. */
+    fitMargin?: number
 }
 
 type ControlsHandle = React.ComponentRef<typeof OrbitControls>
@@ -244,12 +247,17 @@ function CameraBridge({
     bridgeRef,
     controlsRef,
     initialCamera,
+    diag,
+    fitMargin,
 }: {
     bridgeRef: React.MutableRefObject<CameraBridgeRef>
     controlsRef: React.MutableRefObject<ControlsHandle | null>
     initialCamera: { position: Vec3Tuple; target: Vec3Tuple } | null | undefined
+    diag: number
+    fitMargin: number
 }) {
-    const camera = useThree((s) => s.camera)
+    const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
+    const size = useThree((s) => s.size)
     const appliedRef = useRef(false)
 
     // Keep the bridge populated so getCameraState() can read fresh refs.
@@ -262,14 +270,39 @@ function CameraBridge({
 
     useEffect(() => {
         if (appliedRef.current) return
-        if (!initialCamera) return
+        if (size.width === 0 || size.height === 0) return
         const controls = controlsRef.current
         if (!controls) return
-        camera.position.set(...initialCamera.position)
-        controls.target.set(...initialCamera.target)
+
+        if (initialCamera) {
+            camera.position.set(...initialCamera.position)
+            controls.target.set(...initialCamera.target)
+        }
+
+        const dir = camera.position.clone().sub(controls.target)
+        if (dir.lengthSq() === 0) dir.set(0.55, 0.85, 0.75)
+        dir.normalize()
+
+        // The mosaic is a flat plate in the X-Z plane (Y up). During Y-axis
+        // rotation, its projected bounding box on screen is at most `diag` wide
+        // (the in-plane diagonal) and sin(elevation)*diag tall (depth
+        // foreshortened by camera elevation). Fitting this rectangle instead
+        // of the bounding sphere keeps the framing tight without clipping.
+        const elevation = Math.abs(Math.asin(Math.min(1, Math.max(-1, dir.y))))
+        const screenW = diag
+        const screenH = Math.sin(elevation) * diag
+        const aspect = size.width / size.height
+        const tanV = Math.tan(((camera.fov || 45) * Math.PI) / 180 / 2)
+        const distance =
+            Math.max(screenW / (2 * tanV * aspect), screenH / (2 * tanV)) * fitMargin
+
+        camera.position.copy(controls.target).addScaledVector(dir, distance)
+        camera.updateProjectionMatrix()
         controls.update()
+        // Make this the new "initial" so the reset button returns to a fitted view.
+        controls.saveState()
         appliedRef.current = true
-    }, [camera, controlsRef, initialCamera])
+    }, [camera, controlsRef, initialCamera, size.width, size.height, diag, fitMargin])
 
     return null
 }
@@ -280,7 +313,7 @@ function CameraBridge({
  * handle so the parent's Reset button can recenter the camera.
  */
 export const MosaicScene = forwardRef<MosaicSceneHandle, MosaicSceneProps>(function MosaicScene(
-    { data, autoRotate = true, initialCamera = null, initialUserStopped = false },
+    { data, autoRotate = true, initialCamera = null, initialUserStopped = false, fitMargin = 1.08 },
     ref,
 ) {
     const controlsRef = useRef<ControlsHandle | null>(null)
@@ -306,12 +339,10 @@ export const MosaicScene = forwardRef<MosaicSceneHandle, MosaicSceneProps>(funct
         },
     }))
 
-    // Worst case during rotation: the mosaic's diagonal sweeps across the view,
-    // so fit camera distance to the diagonal (plus frame) to keep corners on
-    // screen at all rotation angles.
     const diag = Math.hypot(data.width_studs, data.height_studs) + 2
-    const camDistance = diag * 0.7
-    const defaultCameraPos: Vec3Tuple = [camDistance * 0.55, camDistance * 0.85, camDistance * 0.75]
+    // Direction hint only — CameraBridge re-fits the distance from the actual
+    // canvas aspect on mount so corners stay on-screen during rotation.
+    const defaultCameraPos: Vec3Tuple = [diag * 0.66, diag * 1.02, diag * 0.9]
     const cameraPos = initialCamera?.position ?? defaultCameraPos
     const span = Math.max(data.width_studs, data.height_studs)
 
@@ -340,6 +371,8 @@ export const MosaicScene = forwardRef<MosaicSceneHandle, MosaicSceneProps>(funct
                 bridgeRef={bridgeRef}
                 controlsRef={controlsRef}
                 initialCamera={initialCamera}
+                diag={diag}
+                fitMargin={fitMargin}
             />
             <MosaicSceneContent data={data} />
         </Canvas>
