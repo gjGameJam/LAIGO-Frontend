@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { X, RotateCcw } from 'lucide-react'
@@ -31,6 +31,9 @@ export function MosaicExpandedView({
 }: MosaicExpandedViewProps) {
     const sceneRef = useRef<MosaicSceneHandle | null>(null)
     const closeBtnRef = useRef<HTMLButtonElement | null>(null)
+    // Mount the Canvas only after the card's scale animation settles, so r3f
+    // measures the full layout size instead of the 92%-scale transformed rect.
+    const [cardReady, setCardReady] = useState(false)
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -69,17 +72,25 @@ export function MosaicExpandedView({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.92 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
+                onAnimationComplete={() => setCardReady(true)}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="absolute inset-0">
-                    <MosaicScene
-                        ref={sceneRef}
-                        data={data}
-                        autoRotate
-                        initialCamera={initialCamera}
-                        initialUserStopped={initialUserStopped}
-                    />
-                </div>
+                <motion.div
+                    className="absolute inset-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: cardReady ? 1 : 0 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                >
+                    {cardReady && (
+                        <MosaicScene
+                            ref={sceneRef}
+                            data={data}
+                            autoRotate
+                            initialCamera={initialCamera}
+                            initialUserStopped={initialUserStopped}
+                        />
+                    )}
+                </motion.div>
 
                 <div className="absolute top-4 right-4 flex items-center gap-2">
                     <button
