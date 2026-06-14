@@ -212,6 +212,43 @@ export async function getCheckoutStatus(
     return (await res.json()) as CheckoutStatusResponse
 }
 
+// ── Donation / tip ──────────────────────────────────────────────────────────
+//
+// Backend contract (add to your FastAPI router):
+//
+//   POST /donate
+//   Body:    { amount_cents: int }          # must be >= 50 (Stripe minimum)
+//   Returns: { client_secret: str }         # PaymentIntent client secret
+//
+//   stripe.PaymentIntent.create(
+//       amount=body.amount_cents,
+//       currency="usd",
+//       payment_method_types=["card"],
+//       metadata={"type": "tip"},
+//   )
+
+export interface DonateRequest { amount_cents: number }
+export interface DonateResponse { client_secret: string }
+
+export async function createDonationIntent(
+    body: DonateRequest,
+    signal?: AbortSignal,
+): Promise<DonateResponse> {
+    log('POST →', `${API}/donate`)
+    const res = await fetch(`${API}/donate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal,
+    })
+    if (!res.ok) {
+        const message = await readErrorMessage(res, 'Could not start payment')
+        errLog('Donate failed:', res.status, message)
+        throw new Error(message)
+    }
+    return (await res.json()) as DonateResponse
+}
+
 // ── Formatting helpers ──────────────────────────────────────────────────────
 
 export function formatCents(cents: number, currency: string = 'USD'): string {
