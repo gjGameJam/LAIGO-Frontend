@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     AlertCircle,
@@ -5,22 +6,30 @@ import {
     PackageIcon,
     ShoppingCartIcon,
     HammerIcon,
+    HeartIcon,
 } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { BrickPreview3D } from './BrickPreview3D'
 import { StudStackingLoader } from './StudStackingLoader'
-import { StripeCheckoutPanel } from './checkout/StripeCheckoutPanel'
 import type { JobState } from '../hooks/useJob'
 
-// Flip to false to re-enable the Stripe checkout gate on the complete view.
-const USE_LEGACY_NEXT_STEPS = false
-
-const LEGACY_STEPS = [
+const NEXT_STEPS = [
     { icon: DownloadIcon, text: 'Download the ZIP file with everything inside.' },
     { icon: PackageIcon, text: 'Open it — you\'ll find a piece list and instructions.' },
     { icon: ShoppingCartIcon, text: 'Upload the piece list to Pick a Brick and order parts.' },
     { icon: HammerIcon, text: 'When they arrive, follow the instructions and build!' },
 ]
+
+const SUPPORT_AMOUNTS = [
+    { label: 'Skip', cents: 0 },
+    { label: '$1', cents: 100 },
+    { label: '$3', cents: 300 },
+    { label: '$5', cents: 500 },
+]
+
+// Replace with your Stripe payment link base URL or Ko-fi link.
+// Amount is appended as a query param: ?amount=500 (in cents).
+const SUPPORT_PAYMENT_URL = 'https://buy.stripe.com/YOUR_PAYMENT_LINK'
 
 interface OutputPanelProps {
     jobId: string | null
@@ -28,7 +37,7 @@ interface OutputPanelProps {
     submissionError: string | null
 }
 
-export function OutputPanel({ jobId, job, submissionError }: OutputPanelProps) {
+export function OutputPanel({ job, submissionError }: OutputPanelProps) {
     // A pre-poll submission error overrides job state — display it as a failure.
     const isFailed = job.status === 'failed' || submissionError !== null
     const errorMessage = submissionError ?? job.error
@@ -185,74 +194,126 @@ export function OutputPanel({ jobId, job, submissionError }: OutputPanelProps) {
                 )}
 
                 {status === 'complete' && (
-                    <motion.div
-                        key="complete"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="flex flex-col h-full"
-                    >
-                        <div className="flex-1 min-h-[300px]">
-                            <BrickPreview3D
-                                downloadUrl={downloadUrl}
-                                previewData={previewData}
-                                previewError={previewError}
-                            />
-                        </div>
-
-                        {USE_LEGACY_NEXT_STEPS ? (
-                            <div className="mt-3 glass rounded-xl p-4">
-                                <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
-                                    Next Steps
-                                </p>
-                                <ol className="space-y-1.5">
-                                    {LEGACY_STEPS.map(({ icon: Icon, text }, i) => (
-                                        <li key={i} className="flex items-start gap-2.5">
-                                            <span className="text-xs font-bold tabular-nums text-violet-600 dark:text-violet-400 shrink-0 w-4">
-                                                {i + 1}.
-                                            </span>
-                                            <Icon size={13} className="text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
-                                            <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                                                {text}
-                                            </p>
-                                        </li>
-                                    ))}
-                                </ol>
-                                <a
-                                    href="https://www.lego.com/en-us/pick-and-build/pick-a-brick?consent-modal=show"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-block mt-2 text-xs text-violet-600 dark:text-violet-400 hover:underline"
-                                >
-                                    lego.com/pick-a-brick →
-                                </a>
-
-                                <div className="mt-4">
-                                    {downloadUrl ? (
-                                        <a
-                                            href={downloadUrl}
-                                            download
-                                            rel="noopener noreferrer"
-                                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-brick-yellow text-zinc-900 hover:bg-brick-yellowLight active:bg-brick-yellowDark border border-zinc-900/10 shadow-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
-                                        >
-                                            <DownloadIcon size={14} /> Download Build Pack
-                                        </a>
-                                    ) : (
-                                        <Button variant="yellow" size="md" disabled className="w-full">
-                                            <DownloadIcon size={14} /> Download Build Pack
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="mt-3 glass rounded-xl p-4">
-                                <StripeCheckoutPanel jobId={jobId} downloadUrl={downloadUrl} />
-                            </div>
-                        )}
-                    </motion.div>
+                    <CompleteView downloadUrl={downloadUrl} previewData={previewData} previewError={previewError} />
                 )}
             </AnimatePresence>
         </div>
+    )
+}
+
+function CompleteView({
+    downloadUrl,
+    previewData,
+    previewError,
+}: {
+    downloadUrl: string | null
+    previewData: JobState['previewData']
+    previewError: JobState['previewError']
+}) {
+    const [selected, setSelected] = useState<number | null>(null)
+
+    const handleSupport = (cents: number) => {
+        setSelected(cents)
+        if (cents === 0) return
+        const url = `${SUPPORT_PAYMENT_URL}?amount=${cents}`
+        window.open(url, '_blank', 'noopener,noreferrer')
+    }
+
+    return (
+        <motion.div
+            key="complete"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="flex flex-col h-full"
+        >
+            <div className="flex-1 min-h-[300px]">
+                <BrickPreview3D
+                    downloadUrl={downloadUrl}
+                    previewData={previewData}
+                    previewError={previewError}
+                />
+            </div>
+
+            <div className="mt-3 glass rounded-xl p-4 flex flex-col gap-4">
+                {/* Next steps */}
+                <div>
+                    <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
+                        Next Steps
+                    </p>
+                    <ol className="space-y-1.5">
+                        {NEXT_STEPS.map(({ icon: Icon, text }, i) => (
+                            <li key={i} className="flex items-start gap-2.5">
+                                <span className="text-xs font-bold tabular-nums text-violet-600 dark:text-violet-400 shrink-0 w-4">
+                                    {i + 1}.
+                                </span>
+                                <Icon size={13} className="text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5" />
+                                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                                    {text}
+                                </p>
+                            </li>
+                        ))}
+                    </ol>
+                    <a
+                        href="https://www.lego.com/en-us/pick-and-build/pick-a-brick?consent-modal=show"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block mt-2 text-xs text-violet-600 dark:text-violet-400 hover:underline"
+                    >
+                        lego.com/pick-a-brick →
+                    </a>
+                </div>
+
+                {/* Download */}
+                {downloadUrl ? (
+                    <a
+                        href={downloadUrl}
+                        download
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-brick-yellow text-zinc-900 hover:bg-brick-yellowLight active:bg-brick-yellowDark border border-zinc-900/10 shadow-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                    >
+                        <DownloadIcon size={14} /> Download Build Pack
+                    </a>
+                ) : (
+                    <Button variant="yellow" size="md" disabled className="w-full">
+                        <DownloadIcon size={14} /> Download Build Pack
+                    </Button>
+                )}
+
+                {/* Pay what you can */}
+                <div className="border-t border-zinc-200 dark:border-zinc-800 pt-3">
+                    <div className="flex items-center gap-1.5 mb-2">
+                        <HeartIcon size={12} className="text-rose-400" />
+                        <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                            Support LAIGO
+                        </p>
+                    </div>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-500 mb-2.5">
+                        LAIGO is free to use. If it saved you time, consider leaving a tip.
+                    </p>
+                    <div className="grid grid-cols-4 gap-1.5">
+                        {SUPPORT_AMOUNTS.map(({ label, cents }) => (
+                            <button
+                                key={cents}
+                                onClick={() => handleSupport(cents)}
+                                className={`py-1.5 rounded-lg text-xs font-medium border transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+                                    selected === cents
+                                        ? 'bg-violet-500 border-violet-500 text-white'
+                                        : 'bg-white/50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-violet-400 dark:hover:border-violet-500'
+                                }`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                    {selected === 0 && (
+                        <p className="text-[11px] text-zinc-400 dark:text-zinc-600 mt-1.5 text-center">
+                            No worries — happy building!
+                        </p>
+                    )}
+                </div>
+            </div>
+        </motion.div>
     )
 }
