@@ -62,6 +62,10 @@ const fixAvastFalsePositive = {
 
 export default defineConfig({
   plugins: [react(), fixAvastFalsePositive],
+  server: {
+    port: 5173,
+    strictPort: true,
+  },
   optimizeDeps: {
     include: [
       'react',
@@ -77,6 +81,8 @@ export default defineConfig({
       'three/examples/jsm/utils/BufferGeometryUtils.js',
       'react/jsx-runtime',
       'react/jsx-dev-runtime',
+      '@stripe/stripe-js',
+      '@stripe/react-stripe-js',
     ],
   },
 })

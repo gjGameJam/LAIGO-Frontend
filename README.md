@@ -60,7 +60,7 @@ Vite only reads env files at startup — restart `npm run dev` after changes.
 | **Navbar** | LAIGO wordmark (LegoThick brick font), API status pill (online / offline / checking), dark/light toggle. |
 | **Hero** | Marketing headline + tagline. |
 | **Parameters card** | Image upload (drag-drop), block-width slider (1–10), 2D/3D segmented control, % background-color slider (3D only), Frame toggle, Convert CTA. |
-| **Output card** | Idle: draggable CSS-3D placeholder LEGO cube. Queued: queue-position chip. Running: animated brick-stacking loader. Complete: real Three.js mosaic (instanced studs, frame walls, baseplate) with orbit-controls, Reset + Expand buttons in the corner, and a Stripe checkout panel below. Expand pops the mosaic into a near-full-screen modal that opens at the same camera angle/zoom. Failed: error breakdown. |
+| **Output card** | Idle: draggable CSS-3D placeholder LEGO cube. Queued: queue-position chip. Running: animated brick-stacking loader. Complete: real Three.js mosaic (instanced studs, frame walls, baseplate, wall-hanging hooks on back face) with full-360° orbit, Reset + Expand buttons, and a Stripe checkout panel below. Expand pops the mosaic into a near-full-screen modal at the same camera angle. Flip the mosaic past horizontal to see the back face and hook placement. Failed: error breakdown. |
 
 ### Design system
 
@@ -89,7 +89,7 @@ src/
     ConvertButton.tsx          # Violet button with LEGO-yellow progress fill + stud strip
     OutputPanel.tsx            # idle / queued / running / complete / failed state machine
     BrickPreview3D.tsx         # Placeholder CSS-3D cube + mounts MosaicScene once previewData loads
-    MosaicScene.tsx            # Three.js mosaic — InstancedMesh per palette color, frame walls, OrbitControls
+    MosaicScene.tsx            # Three.js mosaic — InstancedMesh per palette color, frame walls, wall hooks, full-360° OrbitControls
     MosaicExpandedView.tsx     # Portal'd near-full-screen modal that hands camera state over from the small preview
     StudStackingLoader.tsx     # Framer Motion loader — bricks drop and stack on loop
     ErrorBoundary.tsx          # React error boundary
@@ -108,7 +108,7 @@ src/
   fonts/                       # LegoThick + Nunito (kept; used by legacy + wordmark)
   legacy/                      # Pre-2026 UI — see "Legacy" below
 
-public/                        # Favicons + manifest; brickStackNobg.gif (no longer used)
+public/                        # Favicons + manifest
 ```
 
 ### Data flow

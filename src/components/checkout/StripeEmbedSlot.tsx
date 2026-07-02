@@ -10,11 +10,10 @@ interface StripeEmbedSlotProps {
 
 /**
  * Mount point for Stripe's <EmbeddedCheckoutProvider> / <EmbeddedCheckout>.
+ * Packages (@stripe/react-stripe-js, @stripe/stripe-js) are already installed.
  *
  * TODO(stripe-embed):
- *   1. `npm install @stripe/react-stripe-js @stripe/stripe-js`
- *   2. Replace the placeholder block below with:
- *
+ *   1. Replace the placeholder block below with:
  *        const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK!)
  *        <EmbeddedCheckoutProvider
  *            stripe={stripePromise}
@@ -23,14 +22,12 @@ interface StripeEmbedSlotProps {
  *            <EmbeddedCheckout />
  *        </EmbeddedCheckoutProvider>
  *
- *   3. Wire `onComplete` to call `props.onComplete()` so useCheckout can
- *      flip to the `processing` stage and start polling /status.
+ *   2. Wire `onComplete` → `props.onComplete()` so useCheckout flips to `processing`.
  *
- *   4. Add Stripe publishable key to .env: VITE_STRIPE_PK=pk_test_...
+ *   3. Add VITE_STRIPE_PK=pk_test_... to .env
  *
- *   5. Confirm a backend webhook handler for `checkout.session.completed`
- *      exists and advances the saga via the existing checkout_id. Without
- *      the webhook, the customer pays but the saga never starts.
+ *   4. Backend: expose POST /jobs/:id/checkout/session (returns client_secret) and
+ *      a webhook handler for checkout.session.completed to advance the saga.
  */
 export function StripeEmbedSlot({ session, onComplete }: StripeEmbedSlotProps) {
     if (!session) {
@@ -58,7 +55,7 @@ export function StripeEmbedSlot({ session, onComplete }: StripeEmbedSlotProps) {
             transition={{ duration: 0.3, ease: 'easeOut' }}
             className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white/40 dark:bg-zinc-900/40"
         >
-            {/* TODO(stripe-embed): replace this block with EmbeddedCheckoutProvider. */}
+            {/* TODO(stripe-embed): replace this block with EmbeddedCheckoutProvider — see JSDoc above. */}
             <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60">
                 <Lock size={12} className="text-zinc-400 dark:text-zinc-500" />
                 <span className="text-[11px] text-zinc-500 dark:text-zinc-400">

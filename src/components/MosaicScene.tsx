@@ -180,6 +180,44 @@ function Frame({ data }: { data: PreviewData }) {
     )
 }
 
+function SingleHook({ position }: { position: [number, number, number] }) {
+    return (
+        <group position={position}>
+            {/* Flat mounting plate flush against back face */}
+            <mesh>
+                <boxGeometry args={[2.0, 0.15, 1.0]} />
+                <meshStandardMaterial color="#888888" metalness={0.75} roughness={0.25} />
+            </mesh>
+            {/* Angled catch — leans away from the back so a nail can slot in */}
+            <mesh position={[0, -0.35, -0.3]} rotation={[Math.PI * 0.1, 0, 0]}>
+                <boxGeometry args={[0.35, 0.7, 0.15]} />
+                <meshStandardMaterial color="#888888" metalness={0.75} roughness={0.25} />
+            </mesh>
+        </group>
+    )
+}
+
+function WallHooks({ data }: { data: PreviewData }) {
+    const { width_studs, height_studs, block_width, block_height } = data
+    // Mirror backend logic: nailHooks = min(blockW * blockH, 2)
+    const hookCount = Math.min(block_width * block_height, 2)
+    // Hooks sit just proud of the baseplate's back face
+    const hookY = -PLATE_H - 0.2
+    // Place hooks 25% down from the top edge (negative Z = top of mosaic image)
+    const hookZ = -(height_studs * 0.25)
+    const hookXs: number[] = hookCount === 1
+        ? [0]
+        : [-(width_studs * 0.25), width_studs * 0.25]
+
+    return (
+        <>
+            {hookXs.map((x, i) => (
+                <SingleHook key={i} position={[x, hookY, hookZ]} />
+            ))}
+        </>
+    )
+}
+
 interface MosaicSceneContentProps {
     data: PreviewData
 }
@@ -203,6 +241,7 @@ function MosaicSceneContent({ data }: MosaicSceneContentProps) {
                 hasFrame={data.has_frame}
             />
             <Frame data={data} />
+            <WallHooks data={data} />
             {groups.map((g) => (
                 <StudInstances key={g.paletteIdx} group={g} />
             ))}
@@ -365,8 +404,7 @@ export const MosaicScene = forwardRef<MosaicSceneHandle, MosaicSceneProps>(funct
                 autoRotateSpeed={0.8}
                 minDistance={span * 0.4}
                 maxDistance={span * 3}
-                maxPolarAngle={Math.PI / 2.05}
-            />
+                />
             <CameraBridge
                 bridgeRef={bridgeRef}
                 controlsRef={controlsRef}
