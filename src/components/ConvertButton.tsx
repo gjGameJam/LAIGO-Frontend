@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import clsx from 'clsx'
-import { Sparkles } from 'lucide-react'
+import { ArrowRightLeft } from 'lucide-react'
 
 interface ConvertButtonProps {
     progress: number
@@ -9,11 +9,14 @@ interface ConvertButtonProps {
     queuePosition?: number | null
     noFile?: boolean
     disabled?: boolean
+    /** Current form values already produced a completed job — suppresses the attract animation. */
+    converted?: boolean
     onClick?: () => void
 }
 
 /**
- * Modern Convert CTA — violet idle, fills with LEGO yellow as the job progresses.
+ * Modern Convert CTA — violet gradient idle with a periodic shine sweep + glow
+ * while ready to click, fills with LEGO yellow as the job progresses.
  */
 export function ConvertButton({
     progress,
@@ -22,9 +25,12 @@ export function ConvertButton({
     queuePosition = null,
     noFile = false,
     disabled = false,
+    converted = false,
     onClick,
 }: ConvertButtonProps) {
     const isDisabled = disabled || noFile || running || queued
+    // Attract mode: ready to click and there's something new to convert.
+    const attract = !isDisabled && !converted
     const clampedProgress = Math.max(0, Math.min(100, progress))
 
     let label: string
@@ -56,13 +62,18 @@ export function ConvertButton({
                 'relative w-full h-12 rounded-lg overflow-hidden font-semibold text-sm',
                 'outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50',
                 'border border-black/20 dark:border-black/40',
-                'transition-colors',
+                'transition-[color,background-color,filter,box-shadow] duration-200',
                 isDisabled && !running && !queued
                     ? 'bg-zinc-300 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500 cursor-not-allowed'
-                    : 'bg-violet-600 text-white hover:bg-violet-500 active:bg-violet-700',
+                    : 'bg-gradient-to-br from-violet-500 via-violet-600 to-violet-700 text-white hover:brightness-110 active:brightness-95',
             )}
             style={{
-                boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.18)',
+                boxShadow:
+                    isDisabled && !running && !queued
+                        ? 'inset 0 2px 0 rgba(0,0,0,0.18)'
+                        : attract
+                          ? 'inset 0 1px 0 rgba(255,255,255,0.18), 0 1px 2px rgba(0,0,0,0.25), 0 0 22px rgba(107,85,220,0.45)'
+                          : 'inset 0 1px 0 rgba(255,255,255,0.18), 0 1px 2px rgba(0,0,0,0.25)',
             }}
             aria-busy={running || queued}
         >
@@ -78,6 +89,17 @@ export function ConvertButton({
                 }
                 aria-hidden
             />
+
+            {/* Attract shine — periodic diagonal light band while ready to click.
+                Transform-based, so MotionConfig reducedMotion="user" disables it. */}
+            {attract && (
+                <motion.div
+                    className="absolute inset-y-0 left-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none"
+                    animate={{ x: ['-150%', '450%'] }}
+                    transition={{ repeat: Infinity, duration: 1.1, repeatDelay: 2.6, ease: 'easeInOut' }}
+                    aria-hidden
+                />
+            )}
 
             {/* Queued shimmer */}
             {queued && (
@@ -101,7 +123,7 @@ export function ConvertButton({
                         className="flex items-center gap-2"
                         style={runningTextColor ? { color: runningTextColor } : undefined}
                     >
-                        {!running && !queued && !noFile && <Sparkles size={14} />}
+                        {!running && !queued && !noFile && <ArrowRightLeft size={14} />}
                         {label}
                     </motion.span>
                 </AnimatePresence>

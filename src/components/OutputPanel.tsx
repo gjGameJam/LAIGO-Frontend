@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     AlertCircle,
     DownloadIcon,
-    PackageIcon,
+    PackageOpenIcon,
     ShoppingCartIcon,
     HammerIcon,
     HeartIcon,
@@ -18,11 +18,29 @@ import type { JobState } from '../hooks/useJob'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK ?? '')
 
+const PICK_A_BRICK_URL = 'https://www.lego.com/en-us/pick-and-build/pick-a-brick?consent-modal=show'
+
 const NEXT_STEPS = [
     { icon: DownloadIcon, text: 'Download the ZIP file with everything inside.' },
-    { icon: PackageIcon, text: 'Open it — you\'ll find a piece list and instructions.' },
-    { icon: ShoppingCartIcon, text: 'Upload the piece list to Pick a Brick and order parts.' },
-    { icon: HammerIcon, text: 'When they arrive, follow the instructions and build!' },
+    { icon: PackageOpenIcon, text: 'Open zip for piece list to order and instructions.' },
+    {
+        icon: ShoppingCartIcon,
+        text: (
+            <>
+                Upload the piece list to{' '}
+                <a
+                    href={PICK_A_BRICK_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-violet-600 dark:text-violet-400 hover:underline"
+                >
+                    Pick a Brick
+                </a>{' '}
+                and order parts.
+            </>
+        ),
+    },
+    { icon: HammerIcon, text: 'When pieces arrive, follow the instructions and build!' },
 ]
 
 type AmountOption = 0 | 99 | 300 | 'custom'
@@ -292,7 +310,7 @@ function CompleteView({
                             ))}
                         </ol>
                         <a
-                            href="https://www.lego.com/en-us/pick-and-build/pick-a-brick?consent-modal=show"
+                            href={PICK_A_BRICK_URL}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-block mt-2 text-xs text-violet-600 dark:text-violet-400 hover:underline"

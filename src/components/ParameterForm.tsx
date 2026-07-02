@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Ruler, Box, Frame, ImagePlus } from 'lucide-react'
 import { ImageUpload } from '../ui/ImageUpload'
@@ -63,6 +63,10 @@ export function ParameterForm({
     const set = <K extends keyof FormValues>(key: K) => (val: FormValues[K]) =>
         onChange({ ...values, [key]: val })
 
+    // Snapshot of the values that produced the current job, so the button's
+    // attract animation stays off after completion until something changes.
+    const [lastSubmitted, setLastSubmitted] = useState<FormValues | null>(null)
+
     const handleConvert = useCallback(async () => {
         if (!values.image) return
         try {
@@ -74,6 +78,7 @@ export function ParameterForm({
                 boolValue: values.framed,
             })
             const { job_id } = await submitJob(formData)
+            setLastSubmitted(values)
             onJobSubmit(job_id)
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Job submission failed'
@@ -163,6 +168,15 @@ export function ParameterForm({
                     queued={jobStatus === 'queued'}
                     queuePosition={jobQueuePosition}
                     noFile={!values.image}
+                    converted={
+                        jobStatus === 'complete' &&
+                        lastSubmitted !== null &&
+                        lastSubmitted.image === values.image &&
+                        lastSubmitted.blockWidth === values.blockWidth &&
+                        lastSubmitted.mosaicType === values.mosaicType &&
+                        lastSubmitted.backgroundPercent === values.backgroundPercent &&
+                        lastSubmitted.framed === values.framed
+                    }
                     onClick={handleConvert}
                 />
             </motion.div>
