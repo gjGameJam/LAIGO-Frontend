@@ -53,6 +53,7 @@ src/
     BrickPreview3D.tsx        CSS-3D placeholder cube → MosaicScene swap
     MosaicScene.tsx           Three.js canvas: InstancedMesh/color, OrbitControls, wall hooks on back face
     MosaicExpandedView.tsx    Portal modal; inherits camera state from inline preview
+    MosaicStatsChip.tsx       Top-center pieces + est. cost pill (inline preview + expanded modal)
     StudStackingLoader.tsx    Framer Motion brick-stacking animation
     checkout/
       StripeCheckoutPanel.tsx  Shipping → quote → pay → saga state machine UI
@@ -61,6 +62,7 @@ src/
 
   hooks/
     useJob.ts                 Polls /jobs/:id; fetches /preview on complete
+    useJobStats.ts            One-shot /jobs/:id/stats fetch; 'unavailable' hides the stats chip
     useCheckout.ts            Checkout state machine (shipping→quoting→review→paying→processing→done)
     useDarkMode.ts            System-aware dark mode; persists to localStorage
 
@@ -81,6 +83,7 @@ src/
 | GET | `/jobs/:id` | `{ status, progress?, queue_position?, preview_url?, error? }` |
 | GET | `/jobs/:id/preview` | mosaic JSON — see `PreviewData` in `api.ts` |
 | GET | `/jobs/:id/download` | streams ZIP build pack |
+| GET | `/jobs/:id/stats` | `{ piece_count, estimated_cost_cents: number\|null, currency?, pricing_as_of? }` for the preview stats chip; 404/malformed → chip hidden |
 
 ### PreviewData shape
 
@@ -144,15 +147,18 @@ Baseplate back face: `Y = -PLATE_H = -0.4`. Top of the mosaic image = negative-Z
 
 ## Known gotchas
 
-### Avast Web Shield — `vite.config.js`
+### Avast false positive — `vite.config.js`
 
-Avast falsely flags drei bundle patterns as obfuscation and resets the connection mid-transfer, white-paging the dev server. The `fixAvastFalsePositive` plugin in `vite.config.js` patches the pre-bundled `@react-three_drei.js` at the HTTP middleware level:
+Avast falsely flags drei bundle patterns as obfuscation. Two shields fire: Web Shield resets the HTTP transfer (white page), and File Shield quarantines `node_modules/.vite/deps/@react-three_drei.js` **as it's written**, leaving a 0-byte `asw-…` marker — Vite then can never finish an optimize run and the browser wedges in a permanent *504 Outdated Optimize Dep* loop after any re-optimization.
 
-- `.toString()` → `+ ""` (23 occurrences — string coercion, semantically identical)
+The `avastSafePrebundle` esbuild plugin (in `optimizeDeps.esbuildOptions.plugins`) strips the trigger patterns from **all** dependency sources during dep pre-bundling, so written bundles never contain them:
+
+- `.toString()` → `["toString"]()` (identical property access, no precedence pitfalls; `?.toString()` handled first)
 - `String.fromCharCode(` → `String.fromCodePoint(` (identical for BMP 0–0xFFFF)
-- Rewrites relative chunk imports to absolute versioned paths (prevents dual-instance R3F context break — *"Hooks can only be used within the Canvas component!"*)
 
-Do not remove this plugin.
+Dev-only: `vite build` doesn't run optimizeDeps, so production output is untouched. `optimizeDeps.holdUntilCrawlEnd: false` commits the bundle at startup (all deps are pre-listed in `include`), avoiding in-flight-hash windows.
+
+Do not remove this plugin. History: this replaced an HTTP-middleware patch of the on-disk bundle, which couldn't survive the File Shield eating the file and itself caused stale-hash 504 wedges. If a *504 Outdated Optimize Dep* loop or `EBUSY … asw-…` error ever returns: stop all dev servers, delete `node_modules/.vite`, restart.
 
 ### Stripe Embedded Checkout — incomplete
 
@@ -181,6 +187,7 @@ Do not remove this plugin.
 **In progress (backend or SDK work needed):**
 - Stripe Embedded Checkout session endpoint + frontend SDK wiring
 - Stripe webhook → saga advancement
+- Backend pricing behind `/jobs/:id/stats` — while unfinished the endpoint returns `estimated_cost_cents: null` and the stats chip shows piece count only
 
 ---
 

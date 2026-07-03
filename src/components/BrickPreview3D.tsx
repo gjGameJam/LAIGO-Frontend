@@ -3,6 +3,8 @@ import { AnimatePresence } from 'framer-motion'
 import { RotateCcw, DownloadIcon, AlertTriangle, Maximize2 } from 'lucide-react'
 import { MosaicScene, type MosaicSceneHandle, type Vec3Tuple } from './MosaicScene'
 import { MosaicExpandedView } from './MosaicExpandedView'
+import { MosaicStatsChip } from './MosaicStatsChip'
+import { useJobStats } from '../hooks/useJobStats'
 import type { PreviewData, PreviewErrorCode } from '../api'
 
 interface ExpandedCameraState {
@@ -92,6 +94,7 @@ export function BrickPreview3D({
     const hasPreview = previewData !== null
     const [isExpanded, setIsExpanded] = useState(false)
     const [expandedCam, setExpandedCam] = useState<ExpandedCameraState | null>(null)
+    const { status: statsStatus, stats } = useJobStats(previewData?.job_id ?? null)
 
     const openExpanded = () => {
         // Snapshot the small preview's camera so the modal opens at the same
@@ -133,6 +136,16 @@ export function BrickPreview3D({
                     </div>
                 ) : (
                     <PlaceholderCube autoRotate={autoRotate} />
+                )}
+
+                {hasPreview && statsStatus === 'ready' && stats && (
+                    <div className="absolute top-3 left-1/2 -translate-x-1/2">
+                        <MosaicStatsChip
+                            pieces={stats.piece_count}
+                            costCents={stats.estimated_cost_cents}
+                            currency={stats.currency}
+                        />
+                    </div>
                 )}
 
                 <div className="absolute top-3 right-3 flex items-center gap-2">
@@ -202,6 +215,7 @@ export function BrickPreview3D({
                 {isExpanded && previewData && (
                     <MosaicExpandedView
                         data={previewData}
+                        stats={statsStatus === 'ready' ? stats : null}
                         onClose={() => setIsExpanded(false)}
                         initialCamera={expandedCam?.initialCamera ?? null}
                         initialUserStopped={expandedCam?.initialUserStopped ?? false}

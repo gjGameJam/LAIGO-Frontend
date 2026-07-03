@@ -214,6 +214,69 @@ export async function getPreview(jobId: string, signal?: AbortSignal): Promise<P
     return data
 }
 
+// ── Job stats ────────────────────────────────────────────────────────────────
+// GET /jobs/:jobId/stats — authoritative piece count for the completed set
+// (mosaic + frame + baseplate, matching the ZIP build pack) plus an optional
+// shipping-free cost estimate. estimated_cost_cents is null while backend
+// pricing is unfinished. A 404 (older backend deployments) is treated as
+// "stats unavailable" (stats chip hidden). Lives under /jobs/:id (not
+// /checkout/) so the piece count works even when the checkout gate is
+// disabled.
+
+export interface JobStats {
+    /** Total physical pieces in the set, frame included. */
+    piece_count: number
+    /** Rough cost in minor units of `currency`; null until pricing is implemented. */
+    estimated_cost_cents: number | null
+    /** ISO-4217 code. Defaults to USD at the display site (formatCents). */
+    currency?: string
+    /** Date (YYYY-MM-DD) the backend's pricing data was last refreshed. */
+    pricing_as_of?: string
+}
+
+export type JobStatsErrorCode = 'STATS_NOT_AVAILABLE' | 'STATS_UNKNOWN'
+
+export class JobStatsError extends Error {
+    code: JobStatsErrorCode
+    status: number
+    constructor(code: JobStatsErrorCode, status: number, message: string) {
+        super(message)
+        this.name = 'JobStatsError'
+        this.code = code
+        this.status = status
+    }
+}
+
+export async function getJobStats(jobId: string, signal?: AbortSignal): Promise<JobStats> {
+    log('GET →', `${API}/jobs/${jobId}/stats`)
+    const res = await fetch(`${API}/jobs/${jobId}/stats`, { signal })
+    if (res.status === 404) {
+        // Expected state while the backend endpoint is unimplemented —
+        // deliberately not logged so it doesn't spam the console every job.
+        throw new JobStatsError('STATS_NOT_AVAILABLE', 404, 'Stats not available')
+    }
+    if (!res.ok) {
+        const message = await readErrorMessage(res, 'Stats unavailable')
+        errLog('Stats fetch failed:', res.status, message)
+        throw new JobStatsError('STATS_UNKNOWN', res.status, message)
+    }
+    const data = (await res.json()) as Partial<JobStats>
+    log('Stats response:', data)
+    // Validate rather than trust the cast — a shape drift must degrade to
+    // "stats unavailable" (chip hidden), never render undefined or crash.
+    if (typeof data.piece_count !== 'number' || !Number.isFinite(data.piece_count)) {
+        errLog('Stats response malformed (piece_count missing):', data)
+        throw new JobStatsError('STATS_UNKNOWN', res.status, 'Malformed stats response')
+    }
+    return {
+        piece_count: data.piece_count,
+        estimated_cost_cents:
+            typeof data.estimated_cost_cents === 'number' ? data.estimated_cost_cents : null,
+        currency: typeof data.currency === 'string' ? data.currency : undefined,
+        pricing_as_of: typeof data.pricing_as_of === 'string' ? data.pricing_as_of : undefined,
+    }
+}
+
 export function buildFormData(values: BuildFormDataInput): FormData {
     if (!values.file) throw new Error('No file selected')
 

@@ -3,11 +3,14 @@ import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { X, RotateCcw } from 'lucide-react'
 import { MosaicScene, type MosaicSceneHandle, type Vec3Tuple } from './MosaicScene'
-import type { PreviewData } from '../api'
+import { MosaicStatsChip } from './MosaicStatsChip'
+import type { JobStats, PreviewData } from '../api'
 
 interface MosaicExpandedViewProps {
     data: PreviewData
     onClose: () => void
+    /** Piece count + cost estimate for the top-center chip; null hides it. */
+    stats?: JobStats | null
     /** Camera state captured from the small preview, so the expanded view
      *  opens at the same angle and zoom the user was already looking at. */
     initialCamera?: { position: Vec3Tuple; target: Vec3Tuple } | null
@@ -26,6 +29,7 @@ interface MosaicExpandedViewProps {
 export function MosaicExpandedView({
     data,
     onClose,
+    stats = null,
     initialCamera = null,
     initialUserStopped = false,
 }: MosaicExpandedViewProps) {
@@ -91,6 +95,16 @@ export function MosaicExpandedView({
                         />
                     )}
                 </motion.div>
+
+                {stats && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2">
+                        <MosaicStatsChip
+                            pieces={stats.piece_count}
+                            costCents={stats.estimated_cost_cents}
+                            currency={stats.currency}
+                        />
+                    </div>
+                )}
 
                 <div className="absolute top-4 right-4 flex items-center gap-2">
                     <button
