@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { RotateCcw, DownloadIcon, AlertTriangle, Maximize2 } from 'lucide-react'
+import { RotateCcw, PackageOpenIcon, AlertTriangle, Maximize2 } from 'lucide-react'
 import { MosaicScene, type MosaicSceneHandle, type Vec3Tuple } from './MosaicScene'
 import { MosaicExpandedView } from './MosaicExpandedView'
 import { MosaicStatsChip } from './MosaicStatsChip'
@@ -71,8 +71,9 @@ const DEFAULT_ROT = { x: -22, y: 26 }
 
 interface BrickPreview3DProps {
     autoRotate?: boolean
-    /** When set, the bottom-right download button becomes an active link to this URL. */
-    downloadUrl?: string | null
+    /** When set, the bottom-right button activates and opens the build pack
+     *  checkout (no direct ZIP link — the pack is paid + delivered by email). */
+    onReceiveBuildPack?: (() => void) | null
     /** When set, replaces the placeholder cube with a Three.js mosaic scene. */
     previewData?: PreviewData | null
     /** When set, replaces the bottom hint with an error banner. */
@@ -86,7 +87,7 @@ interface BrickPreview3DProps {
  */
 export function BrickPreview3D({
     autoRotate = true,
-    downloadUrl = null,
+    onReceiveBuildPack = null,
     previewData = null,
     previewError = null,
 }: BrickPreview3DProps) {
@@ -187,26 +188,25 @@ export function BrickPreview3D({
                     </p>
                 )}
 
-                {downloadUrl ? (
-                    <a
-                        href={downloadUrl}
-                        download
-                        rel="noopener noreferrer"
-                        aria-label="Download build pack"
-                        title="Download build pack"
+                {onReceiveBuildPack ? (
+                    <button
+                        type="button"
+                        onClick={onReceiveBuildPack}
+                        aria-label="Receive build pack"
+                        title="Receive build pack"
                         className="absolute bottom-3 right-3 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-800 dark:text-zinc-100 shadow-lg shadow-black/10 transition-all hover:bg-white dark:hover:bg-zinc-900 hover:scale-105 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
                     >
-                        <DownloadIcon size={16} />
-                    </a>
+                        <PackageOpenIcon size={16} />
+                    </button>
                 ) : (
                     <button
                         type="button"
                         disabled
-                        aria-label="Download build pack (available after conversion)"
+                        aria-label="Receive build pack (available after conversion)"
                         title="Available after conversion"
                         className="absolute bottom-3 right-3 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-400 dark:text-zinc-600 shadow-lg shadow-black/5 opacity-60 cursor-not-allowed"
                     >
-                        <DownloadIcon size={16} />
+                        <PackageOpenIcon size={16} />
                     </button>
                 )}
             </div>

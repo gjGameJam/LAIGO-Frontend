@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { X, Upload, Sliders, Sparkles, Download, Mail } from 'lucide-react'
+import { X, Upload, Sliders, Sparkles, Mail } from 'lucide-react'
 
 interface HelpModalProps {
     onClose: () => void
@@ -26,9 +26,9 @@ const STEPS = [
         body: 'Hit Convert and we\'ll queue your job. The output panel shows live progress and a 3D preview when it\'s ready — click the preview to expand it.',
     },
     {
-        icon: Download,
-        title: 'Download & build',
-        body: 'Grab the ZIP. Inside you\'ll find a piece list (upload to Pick a Brick to order parts) and step-by-step build instructions.',
+        icon: Mail,
+        title: 'Check out & build',
+        body: 'Complete the 99¢ checkout and we\'ll email your build pack — a piece order list plus step-by-step instructions. Order the pieces, then build when they arrive.',
     },
 ]
 

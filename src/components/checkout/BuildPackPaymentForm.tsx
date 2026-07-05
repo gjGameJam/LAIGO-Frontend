@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import { AlertCircle, DownloadIcon } from 'lucide-react'
+import { AlertCircle, MailIcon } from 'lucide-react'
 import { payJob, PayError } from '../../checkoutApi'
 
 interface BuildPackPaymentFormProps {
@@ -116,8 +116,8 @@ export function BuildPackPaymentForm({
                 disabled={!ready || paying || !stripe || amountCents < 1}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-brick-yellow text-zinc-900 hover:bg-brick-yellowLight active:bg-brick-yellowDark border border-zinc-900/10 shadow-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                <DownloadIcon size={14} />
-                {paying ? 'Processing…' : `Pay ${amountLabel} & Download`}
+                <MailIcon size={14} />
+                {paying ? 'Processing…' : `Pay ${amountLabel} — Get Build Pack`}
             </button>
         </div>
     )

@@ -6,55 +6,31 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     AlertCircle,
     CheckCircle2Icon,
+    CreditCardIcon,
     DownloadIcon,
+    MailIcon,
     PackageOpenIcon,
     ShoppingCartIcon,
     HammerIcon,
-    HeartIcon,
 } from 'lucide-react'
 import { BrickPreview3D } from './BrickPreview3D'
 import { StudStackingLoader } from './StudStackingLoader'
 import { BuildPackPaymentForm } from './checkout/BuildPackPaymentForm'
-import { payJob, PayError } from '../checkoutApi'
 import type { JobState } from '../hooks/useJob'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK ?? '')
 
-const PICK_A_BRICK_URL = 'https://www.lego.com/en-us/pick-and-build/pick-a-brick?consent-modal=show'
-
 const NEXT_STEPS = [
-    { icon: DownloadIcon, text: 'Download the ZIP file with everything inside.' },
-    { icon: PackageOpenIcon, text: 'Open zip for piece list to order and instructions.' },
-    {
-        icon: ShoppingCartIcon,
-        text: (
-            <>
-                Upload the piece list to{' '}
-                <a
-                    href={PICK_A_BRICK_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-violet-600 dark:text-violet-400 hover:underline"
-                >
-                    Pick a Brick
-                </a>{' '}
-                and order parts.
-            </>
-        ),
-    },
-    { icon: HammerIcon, text: 'When pieces arrive, follow the instructions and build!' },
+    { icon: CreditCardIcon, text: 'Tap Receive Build Pack below and check out — the build pack is 99¢.' },
+    { icon: MailIcon, text: "We'll email your build pack: piece order list + step-by-step instructions." },
+    { icon: ShoppingCartIcon, text: 'Order your pieces using the emailed list — full details in the email.' },
+    { icon: HammerIcon, text: 'When the pieces arrive, follow the instructions and build!' },
 ]
 
-type AmountOption = 0 | 99 | 300 | 'custom'
-
-const AMOUNT_BUTTONS: { label: string; option: AmountOption }[] = [
-    { label: 'Free',   option: 0 },
-    { label: '99¢',   option: 99 },
-    { label: '$3',    option: 300 },
-    { label: 'Custom', option: 'custom' },
-]
-
-const DEFAULT_AMOUNT: AmountOption = 99
+// Fixed price — the build pack is no longer pay-what-you-want. The backend
+// /pay contract still accepts any amount_cents ≥ 0; the UI just sends 99.
+const BUILD_PACK_PRICE_CENTS = 99
+const BUILD_PACK_PRICE_LABEL = '99¢'
 
 // Mirrors the server's deliberately loose email check — do not be stricter.
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
@@ -265,38 +241,15 @@ function CompleteView({
     previewError: JobState['previewError']
 }) {
     const [showModal, setShowModal] = useState(false)
-    const [amountOption, setAmountOption] = useState<AmountOption>(DEFAULT_AMOUNT)
-    const [customDollars, setCustomDollars] = useState('')
 
-    // Build-pack delivery email — required by POST /jobs/:id/pay for ALL
-    // amounts, including $0. Prefilled from the last successful checkout.
+    // Build-pack delivery email — required by POST /jobs/:id/pay.
+    // Prefilled from the last successful checkout.
     const [email, setEmail] = useState(loadStoredEmail)
     const [emailError, setEmailError] = useState<string | null>(null)
     const emailInputRef = useRef<HTMLInputElement>(null)
 
-    const [freeSubmitting, setFreeSubmitting] = useState(false)
-    const [freeError, setFreeError] = useState<string | null>(null)
-
     // Set once /pay succeeds — swaps the modal to the confirmation view.
     const [sentTo, setSentTo] = useState<string | null>(null)
-
-    // Cents to send to the backend and display in the button label
-    const donationCents =
-        amountOption === 'custom'
-            ? Math.round(parseFloat(customDollars || '0') * 100)
-            : amountOption
-
-    // Label shown on the confirm button
-    const amountLabel =
-        amountOption === 'custom'
-            ? customDollars ? `$${parseFloat(customDollars).toFixed(2)}` : '$0.00'
-            : AMOUNT_BUTTONS.find(b => b.option === amountOption)?.label ?? ''
-
-    // Stable key: remount Elements when switching presets, but not on every custom keystroke
-    const elementsKey = amountOption === 'custom' ? 'custom' : String(amountOption)
-
-    // Minimum amount Elements needs to initialize (50¢ is Stripe's floor)
-    const elementsCents = amountOption === 'custom' ? Math.max(50, donationCents || 50) : (amountOption as number)
 
     const stripeConfigured = Boolean(import.meta.env.VITE_STRIPE_PK)
 
@@ -335,34 +288,11 @@ function CompleteView({
         triggerDownload()
     }
 
-    const handleFreeDownload = async () => {
-        if (freeSubmitting) return
-        const trimmed = requestEmail()
-        if (!trimmed || !jobId) return
-        setFreeSubmitting(true)
-        setFreeError(null)
-        try {
-            // $0 still goes through /pay: the backend needs the email on file
-            // to send the build pack. The download itself stays ungated.
-            await payJob(jobId, { amount_cents: 0, email: trimmed })
-            handleSuccess(trimmed)
-        } catch (err) {
-            if (err instanceof PayError && err.emailErrors.length > 0) {
-                flagEmailFromServer(err.emailErrors.join(' '))
-            } else {
-                setFreeError(err instanceof Error ? err.message : 'Something went wrong.')
-            }
-        } finally {
-            setFreeSubmitting(false)
-        }
-    }
-
     const openModal = () => {
         if (!downloadUrl) return
-        // Clear transient state from a previous run; keep amount + email.
+        // Clear transient state from a previous run; keep the email.
         setSentTo(null)
         setEmailError(null)
-        setFreeError(null)
         setShowModal(true)
     }
 
@@ -378,7 +308,7 @@ function CompleteView({
             >
                 <div className="flex-1 min-h-[300px]">
                     <BrickPreview3D
-                        downloadUrl={downloadUrl}
+                        onReceiveBuildPack={downloadUrl ? openModal : null}
                         previewData={previewData}
                         previewError={previewError}
                     />
@@ -402,14 +332,6 @@ function CompleteView({
                                 </li>
                             ))}
                         </ol>
-                        <a
-                            href={PICK_A_BRICK_URL}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block mt-2 text-xs text-violet-600 dark:text-violet-400 hover:underline"
-                        >
-                            lego.com/pick-a-brick →
-                        </a>
                     </div>
 
                     <button
@@ -417,7 +339,7 @@ function CompleteView({
                         disabled={!downloadUrl}
                         className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-brick-yellow text-zinc-900 hover:bg-brick-yellowLight active:bg-brick-yellowDark border border-zinc-900/10 shadow-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <DownloadIcon size={14} /> Download Build Pack
+                        <PackageOpenIcon size={14} /> Receive Build Pack
                     </button>
                 </div>
             </motion.div>
@@ -448,9 +370,9 @@ function CompleteView({
                                 {/* Header */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <HeartIcon size={14} className="text-rose-400" />
+                                        <PackageOpenIcon size={14} className="text-violet-500 dark:text-violet-400" />
                                         <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                                            Support LAIGO
+                                            Get Your Build Pack
                                         </span>
                                     </div>
                                     <button
@@ -469,12 +391,15 @@ function CompleteView({
                                     <div className="flex flex-col items-center gap-3 py-4 text-center">
                                         <CheckCircle2Icon size={28} className="text-emerald-500" />
                                         <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                                            Your download has started.
+                                            Payment complete!
                                         </p>
                                         <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
                                             Your build pack is on its way to{' '}
                                             <span className="font-medium text-zinc-700 dark:text-zinc-200">{sentTo}</span>
                                             {' '}— check spam if you don't see it.
+                                        </p>
+                                        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                                            A copy has also started downloading in your browser.
                                         </p>
                                         <div className="flex gap-2 w-full mt-1">
                                             <button
@@ -494,7 +419,9 @@ function CompleteView({
                                 ) : (
                                 <>
                                 <p className="text-xs text-zinc-500 dark:text-zinc-400 -mt-1">
-                                    LAIGO is free to use, but not to run. Please pay what you can if you enjoyed it.
+                                    Converting your photo is free — the finished build pack is{' '}
+                                    <span className="font-semibold text-zinc-700 dark:text-zinc-200">{BUILD_PACK_PRICE_LABEL}</span>.
+                                    Check out below and we'll email you everything you need to build it.
                                 </p>
 
                                 {/* Delivery email — required for every checkout, incl. $0 */}
@@ -536,59 +463,8 @@ function CompleteView({
                                     )}
                                 </div>
 
-                                {/* Amount picker */}
-                                <div className="grid grid-cols-4 gap-1.5">
-                                    {AMOUNT_BUTTONS.map(({ label, option }) => (
-                                        <button
-                                            key={String(option)}
-                                            onClick={() => setAmountOption(option)}
-                                            className={`py-2 rounded-lg text-xs font-medium border transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
-                                                amountOption === option
-                                                    ? 'bg-violet-500 border-violet-500 text-white'
-                                                    : 'bg-white/50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-violet-400 dark:hover:border-violet-500'
-                                            }`}
-                                        >
-                                            {label}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Custom amount input */}
-                                {amountOption === 'custom' && (
-                                    <div className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white/70 dark:bg-zinc-900/40 px-3 py-2 focus-within:ring-2 focus-within:ring-violet-500/50 focus-within:border-violet-500/50 transition-colors">
-                                        <span className="text-sm text-zinc-400 select-none">$</span>
-                                        <input
-                                            type="number"
-                                            min="0.01"
-                                            step="0.01"
-                                            placeholder="0.00"
-                                            value={customDollars}
-                                            onChange={e => setCustomDollars(e.target.value)}
-                                            autoFocus
-                                            className="flex-1 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 outline-none min-w-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
-                                        />
-                                    </div>
-                                )}
-
-                                {/* Payment fields or free download */}
-                                {amountOption === 0 ? (
-                                    <div className="flex flex-col gap-3">
-                                        {freeError && (
-                                            <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2">
-                                                <AlertCircle size={13} className="text-red-500 shrink-0 mt-0.5" />
-                                                <p className="text-xs text-red-700 dark:text-red-300">{freeError}</p>
-                                            </div>
-                                        )}
-                                        <button
-                                            onClick={handleFreeDownload}
-                                            disabled={freeSubmitting}
-                                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-brick-yellow text-zinc-900 hover:bg-brick-yellowLight active:bg-brick-yellowDark border border-zinc-900/10 shadow-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <DownloadIcon size={14} />
-                                            {freeSubmitting ? 'Processing…' : 'Download for Free'}
-                                        </button>
-                                    </div>
-                                ) : !stripeConfigured ? (
+                                {/* Payment fields */}
+                                {!stripeConfigured ? (
                                     <div className="flex items-start gap-2 rounded-lg border border-amber-400/30 bg-amber-400/5 px-3 py-2">
                                         <AlertCircle size={13} className="text-amber-500 shrink-0 mt-0.5" />
                                         <p className="text-xs text-amber-700 dark:text-amber-300">
@@ -597,11 +473,10 @@ function CompleteView({
                                     </div>
                                 ) : jobId === null ? null : (
                                     <Elements
-                                        key={elementsKey}
                                         stripe={stripePromise}
                                         options={{
                                             mode: 'payment',
-                                            amount: elementsCents,
+                                            amount: BUILD_PACK_PRICE_CENTS,
                                             currency: 'usd',
                                             // Pin card-only to match the backend PaymentIntent
                                             // (payment_method_types=["card"]). Without this, deferred
@@ -616,8 +491,8 @@ function CompleteView({
                                     >
                                         <BuildPackPaymentForm
                                             jobId={jobId}
-                                            amountCents={donationCents}
-                                            amountLabel={amountLabel}
+                                            amountCents={BUILD_PACK_PRICE_CENTS}
+                                            amountLabel={BUILD_PACK_PRICE_LABEL}
                                             requestEmail={requestEmail}
                                             onEmailError={flagEmailFromServer}
                                             onSuccess={handleSuccess}
