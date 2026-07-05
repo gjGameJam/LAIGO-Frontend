@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
@@ -16,12 +16,13 @@ import {
 import { BrickPreview3D } from './BrickPreview3D'
 import { StudStackingLoader } from './StudStackingLoader'
 import { BuildPackPaymentForm } from './checkout/BuildPackPaymentForm'
+import { payJob, PayError } from '../checkoutApi'
 import type { JobState } from '../hooks/useJob'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK ?? '')
 
 const NEXT_STEPS = [
-    { icon: CreditCardIcon, text: 'Tap Receive Build Pack below and check out — the build pack is 99¢.' },
+    { icon: CreditCardIcon, text: 'Tap Receive Build Pack below and check out — the build pack is $0.99.' },
     { icon: MailIcon, text: "We'll email your build pack: piece order list + step-by-step instructions." },
     { icon: ShoppingCartIcon, text: 'Order your pieces using the emailed list — full details in the email.' },
     { icon: HammerIcon, text: 'When the pieces arrive, follow the instructions and build!' },
@@ -30,7 +31,8 @@ const NEXT_STEPS = [
 // Fixed price — the build pack is no longer pay-what-you-want. The backend
 // /pay contract still accepts any amount_cents ≥ 0; the UI just sends 99.
 const BUILD_PACK_PRICE_CENTS = 99
-const BUILD_PACK_PRICE_LABEL = '99¢'
+// "$0.99", not "99¢" — the cent sign is too easy to misread as $99.
+const BUILD_PACK_PRICE_LABEL = '$0.99'
 
 // Mirrors the server's deliberately loose email check — do not be stricter.
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
@@ -51,6 +53,24 @@ function storeEmail(email: string) {
     } catch {
         // Private mode / blocked storage — prefill is a nice-to-have only.
     }
+}
+
+// SHA-256 hashes (of the trimmed, lowercased address) of tester emails that
+// skip Stripe and get the build pack via the backend's still-open
+// amount_cents: 0 path. Hashes, not plaintext, so the addresses don't ship in
+// the public bundle. Add one with:  printf '%s' 'a@b.c' | sha256sum
+// Breaks with AMOUNT_BELOW_MINIMUM if the backend ever enforces a minimum.
+const BYPASS_EMAIL_HASHES = new Set([
+    '41703f330b50c19b6afbc4773e2b110bee7eaf9e0c94ed171073a88102ba236c',
+    'ddfdecd3ca79d25a495ed9f013da1bd4ed03eeedcd10f183d898db4ef365571c',
+])
+
+async function sha256Hex(s: string): Promise<string> {
+    // No SubtleCrypto (non-secure context, e.g. http over LAN) → never matches;
+    // the paid flow still works.
+    if (!crypto?.subtle) return ''
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
+    return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('')
 }
 
 
@@ -250,6 +270,29 @@ function CompleteView({
 
     // Set once /pay succeeds — swaps the modal to the confirmation view.
     const [sentTo, setSentTo] = useState<string | null>(null)
+    // Whether that success came through the tester bypass (free send).
+    const [sentFree, setSentFree] = useState(false)
+
+    // True while the typed email hashes into BYPASS_EMAIL_HASHES — swaps the
+    // Stripe form for a plain send button.
+    const [bypass, setBypass] = useState(false)
+    const [sending, setSending] = useState(false)
+    const [sendError, setSendError] = useState<string | null>(null)
+
+    useEffect(() => {
+        const normalized = email.trim().toLowerCase()
+        if (!normalized) {
+            setBypass(false)
+            return
+        }
+        let cancelled = false
+        sha256Hex(normalized).then(hash => {
+            if (!cancelled) setBypass(BYPASS_EMAIL_HASHES.has(hash))
+        })
+        return () => {
+            cancelled = true
+        }
+    }, [email])
 
     const stripeConfigured = Boolean(import.meta.env.VITE_STRIPE_PK)
 
@@ -288,11 +331,36 @@ function CompleteView({
         triggerDownload()
     }
 
+    /** Tester-bypass path: no Stripe — /pay with amount_cents: 0 makes the
+     *  backend email the pack for free. */
+    const handleFreeSend = async () => {
+        if (jobId === null || sending) return
+        const addr = requestEmail()
+        if (!addr) return
+        setSending(true)
+        setSendError(null)
+        try {
+            await payJob(jobId, { amount_cents: 0, email: addr })
+            setSentFree(true)
+            handleSuccess(addr)
+        } catch (err) {
+            if (err instanceof PayError && err.emailErrors.length > 0) {
+                flagEmailFromServer(err.emailErrors.join(' '))
+            } else {
+                setSendError(err instanceof Error ? err.message : 'Something went wrong.')
+            }
+        } finally {
+            setSending(false)
+        }
+    }
+
     const openModal = () => {
         if (!downloadUrl) return
         // Clear transient state from a previous run; keep the email.
         setSentTo(null)
+        setSentFree(false)
         setEmailError(null)
+        setSendError(null)
         setShowModal(true)
     }
 
@@ -391,7 +459,7 @@ function CompleteView({
                                     <div className="flex flex-col items-center gap-3 py-4 text-center">
                                         <CheckCircle2Icon size={28} className="text-emerald-500" />
                                         <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                                            Payment complete!
+                                            {sentFree ? 'Build pack sent!' : 'Payment complete!'}
                                         </p>
                                         <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
                                             Your build pack is on its way to{' '}
@@ -463,8 +531,25 @@ function CompleteView({
                                     )}
                                 </div>
 
-                                {/* Payment fields */}
-                                {!stripeConfigured ? (
+                                {/* Payment fields — or the tester-bypass send button */}
+                                {bypass ? (
+                                    <div className="flex flex-col gap-3">
+                                        {sendError && (
+                                            <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2">
+                                                <AlertCircle size={13} className="text-red-500 shrink-0 mt-0.5" />
+                                                <p className="text-xs text-red-700 dark:text-red-300">{sendError}</p>
+                                            </div>
+                                        )}
+                                        <button
+                                            onClick={handleFreeSend}
+                                            disabled={sending || jobId === null}
+                                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-brick-yellow text-zinc-900 hover:bg-brick-yellowLight active:bg-brick-yellowDark border border-zinc-900/10 shadow-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <MailIcon size={14} />
+                                            {sending ? 'Sending…' : 'Send Build Pack'}
+                                        </button>
+                                    </div>
+                                ) : !stripeConfigured ? (
                                     <div className="flex items-start gap-2 rounded-lg border border-amber-400/30 bg-amber-400/5 px-3 py-2">
                                         <AlertCircle size={13} className="text-amber-500 shrink-0 mt-0.5" />
                                         <p className="text-xs text-amber-700 dark:text-amber-300">

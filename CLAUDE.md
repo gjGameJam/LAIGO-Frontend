@@ -59,7 +59,7 @@ src/
       StripeCheckoutPanel.tsx  Shipping → quote → pay → saga state machine UI
       StripeEmbedSlot.tsx      Stripe Embedded Checkout mount point (placeholder — see below)
       ShippingStep.tsx         Email + country + ZIP form
-      BuildPackPaymentForm.tsx Fixed-price (99¢) card form: tokenize (createPaymentMethod)
+      BuildPackPaymentForm.tsx Fixed-price ($0.99) card form: tokenize (createPaymentMethod)
                                → POST /jobs/:id/pay → handleNextAction on requires_action.
                                Needs Elements paymentMethodCreation: 'manual' (set in OutputPanel)
 
@@ -120,7 +120,7 @@ Preview error codes: `PREVIEW_NOT_AVAILABLE` (404) | `PREVIEW_CORRUPTED` (500) |
 | POST | `/jobs/:id/checkout/quote` | body: `{ shipping_country, shipping_zip, customer_email }` → `QuoteResponse` |
 | POST | `/jobs/:id/checkout/session` | **backend TODO** — returns `{ client_secret, checkout_id }` for Stripe Embedded Checkout |
 | GET | `/jobs/:id/checkout/:checkoutId/status` | saga status polling |
-| POST | `/jobs/:id/pay` | build pack checkout. `{ amount_cents ≥ 0, payment_method_id? (pm_…, required when > 0), email (required for ALL amounts, incl. 0) }` → `{ status: 'free'\|'paid'\|'requires_action', … }`. The contract still accepts any amount, but the UI sends a fixed 99¢ (`BUILD_PACK_PRICE_CENTS` in `OutputPanel.tsx`) — no more pay-what-you-want/$0 path. On `requires_action`, run 3DS with `client_secret` and do **not** re-call `/pay` — the webhook finishes and sends the email |
+| POST | `/jobs/:id/pay` | build pack checkout. `{ amount_cents ≥ 0, payment_method_id? (pm_…, required when > 0), email (required for ALL amounts, incl. 0) }` → `{ status: 'free'\|'paid'\|'requires_action', … }`. The contract still accepts any amount, but the UI sends a fixed $0.99 (`BUILD_PACK_PRICE_CENTS` in `OutputPanel.tsx`) — no more pay-what-you-want/$0 UI, **except** tester emails (SHA-256 hashes in `BYPASS_EMAIL_HASHES`, `OutputPanel.tsx`) which skip Stripe and send `amount_cents: 0`; that bypass only works while the backend keeps accepting $0. On `requires_action`, run 3DS with `client_secret` and do **not** re-call `/pay` — the webhook finishes and sends the email |
 | POST | `/donate` | `{ amount_cents }` (≥ 50) → `{ client_secret }` PaymentIntent. No email — tips are never emailed |
 
 Saga terminal states: `payment_captured` (success), `compensated`, `failed`, `manual_review`. Always render `customer_message`, never `error`.
@@ -189,7 +189,7 @@ Do not remove this plugin. History: this replaced an HTTP-middleware patch of th
 - Checkout shipping form + BrickOwl/LEGO quote flow
 - Saga status polling + customer-facing progress messages
 - Donation / tip flow (PaymentIntent; backend contract defined in `checkoutApi.ts`)
-- Fixed-price 99¢ build pack checkout via `POST /jobs/:id/pay` — required delivery email (prefilled from localStorage `laigo:buildPackEmail`), inline 422 field errors, card + 3DS via `BuildPackPaymentForm`. Email is the primary delivery channel; the ZIP still auto-downloads after payment. No free/direct-download UI remains (though `GET /jobs/:id/download` itself stays ungated)
+- Fixed-price $0.99 build pack checkout via `POST /jobs/:id/pay` — required delivery email (prefilled from localStorage `laigo:buildPackEmail`), inline 422 field errors, card + 3DS via `BuildPackPaymentForm`. Email is the primary delivery channel; the ZIP still auto-downloads after payment. No free/direct-download UI remains (though `GET /jobs/:id/download` itself stays ungated). Exception: allowlisted tester emails (hashed, `BYPASS_EMAIL_HASHES` in `OutputPanel.tsx`) swap the Stripe form for a free "Send Build Pack" button (`amount_cents: 0`)
 
 **In progress (backend or SDK work needed):**
 - Stripe Embedded Checkout session endpoint + frontend SDK wiring
