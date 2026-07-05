@@ -3,18 +3,18 @@
  *
  * Mirrors backend contract in scripts/checkout/{models.py,router.py,gate_router.py}.
  *
- * Endpoint map:
+ * Two independent monetization surfaces live in this file:
+ *
+ * LIVE — build pack checkout (the only flow with UI today):
+ *   POST /jobs/:jobId/pay                                → PayResponse
+ *
+ * PAUSED — physical parts purchase (BrickOwl + Stripe Embedded Checkout saga).
+ *   Client code is complete but nothing mounts StripeCheckoutPanel; don't
+ *   build on this without confirming the pause has been lifted:
  *   GET  /checkout/gate                                  → CheckoutGateResponse
  *   POST /jobs/:jobId/checkout/quote                     → QuoteResponse
  *   POST /jobs/:jobId/checkout/session                   → { clientSecret }   (TODO — backend pending)
  *   GET  /jobs/:jobId/checkout/:checkoutId/status        → CheckoutStatusResponse
- *
- * NOTE — Stripe surface:
- *   The current backend (models.py:ConfirmRequest) expects a Stripe Payment Element
- *   flow (pm_… token via POST /confirm). The frontend selected Stripe Embedded
- *   Checkout (Checkout Session + clientSecret). The `createCheckoutSession` call
- *   below is the bridge that the backend still needs to expose; once it lands,
- *   delete the TODO marker and remove `confirmCheckoutWithPaymentMethod`.
  */
 
 const API = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
@@ -44,6 +44,9 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
         return text.length > 240 ? text.slice(0, 240) + '…' : text
     }
 }
+
+// ════ PAUSED: parts-purchase saga — everything down to the build-pack ═══════
+// ════ section belongs to the unmounted parts flow (see file header)   ═══════
 
 // ── Gate ────────────────────────────────────────────────────────────────────
 
@@ -212,7 +215,11 @@ export async function getCheckoutStatus(
     return (await res.json()) as CheckoutStatusResponse
 }
 
-// ── Pay-what-you-want build pack checkout ───────────────────────────────────
+// ════ LIVE: build pack checkout ═════════════════════════════════════════════
+//
+// The UI charges a fixed $0.99 (BUILD_PACK_PRICE_CENTS in OutputPanel.tsx).
+// The contract itself still accepts any amount_cents ≥ 0 — allowlisted tester
+// emails (BYPASS_EMAIL_HASHES in OutputPanel.tsx) use the 0 path.
 //
 // POST /jobs/:jobId/pay
 //   Body:    { amount_cents: int >= 0, payment_method_id?: "pm_…", email: str }
@@ -325,46 +332,6 @@ export async function payJob(
         throw error
     }
     return (await res.json()) as PayResponse
-}
-
-// ── Donation / tip ──────────────────────────────────────────────────────────
-//
-// No email field here — tips are never emailed. Build-pack delivery goes
-// through POST /jobs/:id/pay above.
-//
-// Backend contract (add to your FastAPI router):
-//
-//   POST /donate
-//   Body:    { amount_cents: int }          # must be >= 50 (Stripe minimum)
-//   Returns: { client_secret: str }         # PaymentIntent client secret
-//
-//   stripe.PaymentIntent.create(
-//       amount=body.amount_cents,
-//       currency="usd",
-//       payment_method_types=["card"],
-//       metadata={"type": "tip"},
-//   )
-
-export interface DonateRequest { amount_cents: number }
-export interface DonateResponse { client_secret: string }
-
-export async function createDonationIntent(
-    body: DonateRequest,
-    signal?: AbortSignal,
-): Promise<DonateResponse> {
-    log('POST →', `${API}/donate`)
-    const res = await fetch(`${API}/donate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal,
-    })
-    if (!res.ok) {
-        const message = await readErrorMessage(res, 'Could not start payment')
-        errLog('Donate failed:', res.status, message)
-        throw new Error(message)
-    }
-    return (await res.json()) as DonateResponse
 }
 
 // ── Formatting helpers ──────────────────────────────────────────────────────

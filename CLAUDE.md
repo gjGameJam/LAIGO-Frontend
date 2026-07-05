@@ -1,6 +1,6 @@
 # CLAUDE.md — LAIGO Frontend
 
-React + Three.js app: image → LEGO mosaic. User uploads a photo, tunes parameters, backend runs color-quantization, frontend renders the result as an interactive 3D mosaic. Optionally buy the parts via a Stripe + BrickOwl checkout saga.
+React + Three.js app: image → LEGO mosaic. User uploads a photo, tunes parameters, backend runs color-quantization, frontend renders the result as an interactive 3D mosaic. Converting is free; the product is the **$0.99 build pack** (piece order list + step-by-step instructions), paid by card and delivered by email — see the Monetization section. A physical parts-purchase flow (Stripe + BrickOwl saga) exists in code but is **paused** with no UI entry point.
 
 ---
 
@@ -20,6 +20,8 @@ VITE_API_URL=http://localhost:8000
 ```
 Vite only reads env files at startup — restart dev server after changes.
 
+**Stripe key:** the build pack checkout reads `VITE_STRIPE_PK` (publishable key) at build time — `pk_test_…` in `.env.local` for testing, the live key wherever production builds happen. Without it the checkout modal renders a config warning instead of the payment form (everything else still works).
+
 **TLS error on install:** `$env:NODE_OPTIONS="--use-system-ca"; npm install`
 
 ---
@@ -37,13 +39,14 @@ Vite only reads env files at startup — restart dev server after changes.
    - `complete` → one-shot `GET /jobs/:id/preview` → `BrickPreview3D` swaps CSS cube for `MosaicScene`
    - `failed` → error breakdown
 5. Expand button: snapshots camera `{ position, target, isAutoRotating }` from `MosaicScene` ref, hands to `MosaicExpandedView` portal
+6. Purchase: **Receive Build Pack** (main CTA under the preview, or the package button in the 3D preview's corner) → modal in `OutputPanel` collects the delivery email → `BuildPackPaymentForm` tokenizes the card → `POST /jobs/:id/pay` → backend emails the pack; the ZIP also auto-downloads as a parallel copy
 
 ### Key files
 
 ```
 src/
   api.ts                     Core API client (health, submitJob, getJob, getPreview, buildFormData, PreviewError)
-  checkoutApi.ts             Checkout + donation API client
+  checkoutApi.ts             Payments client: /pay (live) + parts-saga endpoints (paused) + formatCents
   App.tsx                    Root layout; owns apiStatus + jobId state
   util.ts                    cn() helper (clsx + tailwind-merge)
 
@@ -56,22 +59,55 @@ src/
     MosaicStatsChip.tsx       Top-center pieces + est. cost pill (inline preview + expanded modal)
     StudStackingLoader.tsx    Framer Motion brick-stacking animation
     checkout/
-      StripeCheckoutPanel.tsx  Shipping → quote → pay → saga state machine UI
-      StripeEmbedSlot.tsx      Stripe Embedded Checkout mount point (placeholder — see below)
-      ShippingStep.tsx         Email + country + ZIP form
-      BuildPackPaymentForm.tsx Fixed-price ($0.99) card form: tokenize (createPaymentMethod)
+      BuildPackPaymentForm.tsx LIVE — fixed-price ($0.99) card form: tokenize (createPaymentMethod)
                                → POST /jobs/:id/pay → handleNextAction on requires_action.
                                Needs Elements paymentMethodCreation: 'manual' (set in OutputPanel)
+      StripeCheckoutPanel.tsx  PAUSED — parts saga UI (shipping → quote → pay → saga); not mounted
+      ShippingStep.tsx         PAUSED — email + country + ZIP form for the parts saga
+      QuoteSummary.tsx         PAUSED — BrickOwl seller/cost breakdown for a quote
+      StripeEmbedSlot.tsx      PAUSED — Embedded Checkout mount point (placeholder — see gotchas)
+      SagaProgress.tsx         PAUSED — saga status polling display
 
   hooks/
     useJob.ts                 Polls /jobs/:id; fetches /preview on complete
     useJobStats.ts            One-shot /jobs/:id/stats fetch; 'unavailable' hides the stats chip
-    useCheckout.ts            Checkout state machine (shipping→quoting→review→paying→processing→done)
+    useCheckout.ts            PAUSED — parts-saga state machine (shipping→quoting→review→paying→processing→done)
     useDarkMode.ts            System-aware dark mode; persists to localStorage
 
   ui/                        Button, Slider, SegmentedControl, ImageUpload, StudStrip primitives
   legacy/                    Pre-2026 "brick wall" UI — not imported, won't ship (see bottom of file)
 ```
+
+---
+
+## Monetization
+
+Converting is free. Revenue is the **$0.99 build pack** — a ZIP with the piece order list + step-by-step instructions, emailed by the backend after checkout. Everything lives in `OutputPanel.tsx` (modal + policy) and `BuildPackPaymentForm.tsx` (card form).
+
+### Live: $0.99 build pack
+
+- **Entry points:** the "Receive Build Pack" CTA under the finished preview, and the package button in the 3D preview's corner. Both open the same modal. There is deliberately no direct-download link anywhere in the UI.
+- **Flow:** required delivery email (prefilled from localStorage `laigo:buildPackEmail`) → Stripe Payment Element → `elements.submit()` → `stripe.createPaymentMethod()` → `POST /jobs/:id/pay` with `{ amount_cents: 99, payment_method_id, email }` → on `requires_action`, `stripe.handleNextAction()` runs 3DS and the flow **must not** re-call `/pay` (the backend webhook completes the charge and sends the email).
+- **Delivery:** email is the primary channel — sends are fire-and-forget server-side and never surface in `/pay` responses, so the UI can't know if one bounced. The ZIP also auto-downloads in the browser as a parallel copy. `GET /jobs/:id/download` stays **ungated** (accepted for now): the paywall is UI-level only.
+- **Price:** `BUILD_PACK_PRICE_CENTS = 99` / `BUILD_PACK_PRICE_LABEL = '$0.99'` in `OutputPanel.tsx`. Write the label as `$0.99`, never `99¢` — the cent sign is too easy to misread as $99. The `/pay` contract accepts any `amount_cents ≥ 0`; the fixed price is UI policy, not a backend rule.
+- **Stripe specifics:** `<Elements>` must use `mode: 'payment'` + `paymentMethodTypes: ['card']` (backend PaymentIntent is card-only) + `paymentMethodCreation: 'manual'` (required to call `createPaymentMethod` with the Payment Element).
+- **Email validation:** mirror the server loosely, never stricter — trimmed, ≤ 254 chars, `^[^@\s]+@[^@\s]+\.[^@\s]+$` (`EMAIL_RE` in `OutputPanel.tsx`).
+
+### Tester bypass (permanent testing tool)
+
+Allowlisted tester emails skip Stripe: typing one into the modal's email field swaps the payment form for a "Send Build Pack" button that calls `/pay` with `amount_cents: 0`, and the backend emails the pack for free.
+
+- The list is `BYPASS_EMAIL_HASHES` in `OutputPanel.tsx` — SHA-256 hashes of the trimmed, **lowercased** address. Plaintext tester addresses must never ship in the bundle.
+- Add a tester: `printf '%s' 'new@email.com' | sha256sum` → add the hex string to the set. Remove one by deleting its line.
+- Depends on the backend continuing to accept `amount_cents: 0`. If a server-side minimum is ever enforced, testers will hit `AMOUNT_BELOW_MINIMUM`; the fix then is to move the allowlist into the backend (return `{ status: 'free' }` for allowlisted addresses) and delete the frontend set.
+
+### Paused: physical parts purchase (Stripe + BrickOwl saga)
+
+Buy the actual bricks in-app: shipping form → `/checkout/quote` (BrickOwl seller allocation + LEGO Pick-a-Brick fallback) → Stripe Embedded Checkout → saga status polling. The client code is complete but **nothing mounts `StripeCheckoutPanel`** — the flow is paused indefinitely. Don't build on it (or delete it) without checking first. If resumed, the remaining work is listed under Known gotchas → Stripe Embedded Checkout.
+
+### Removed: donations
+
+A pay-what-you-want checkout + tip flow (`POST /donate`) shipped briefly and was removed in July 2026 when the build pack went fixed-price. The client code is deleted — recover from git history if it ever comes back.
 
 ---
 
@@ -112,7 +148,15 @@ src/
 
 Preview error codes: `PREVIEW_NOT_AVAILABLE` (404) | `PREVIEW_CORRUPTED` (500) | `PREVIEW_SCHEMA_TOO_NEW` | `PREVIEW_UNKNOWN`. Frontend matches on `detail.code`.
 
-### Checkout endpoints
+### Build pack checkout (live)
+
+| Method | Path | Notes |
+|--------|------|-------|
+| POST | `/jobs/:id/pay` | `{ amount_cents ≥ 0, payment_method_id? (pm_…, required when > 0), email (required for ALL amounts, incl. 0) }` → `{ status: 'free' }` \| `{ status: 'paid', payment_intent_id }` \| `{ status: 'requires_action', client_secret, payment_intent_id }`. On `requires_action`, finish 3DS with `client_secret` and do **not** re-call `/pay` — the webhook completes the charge and sends the email |
+
+`/pay` errors come in two shapes — business rules `{ detail: { error, code } }` (codes: `AMOUNT_BELOW_MINIMUM` + `min_cents`, `PAYMENT_METHOD_REQUIRED`, `INVALID_JOB_ID`, `JOB_NOT_FOUND`, `PAYMENTS_UNAVAILABLE`, `PAYMENT_RETRYABLE`, `PAYMENT_FAILED`; render `detail.error`) and FastAPI 422 field validation `{ detail: [{ loc, msg }] }` (entries with `email` in `loc` show inline on the email input — see `PayError` in `checkoutApi.ts`). The backend emails the build pack after every completed checkout — including `status: 'free'` and webhook-completed 3DS charges.
+
+### Parts-saga endpoints (paused — client code exists, no UI)
 
 | Method | Path | Notes |
 |--------|------|-------|
@@ -120,12 +164,8 @@ Preview error codes: `PREVIEW_NOT_AVAILABLE` (404) | `PREVIEW_CORRUPTED` (500) |
 | POST | `/jobs/:id/checkout/quote` | body: `{ shipping_country, shipping_zip, customer_email }` → `QuoteResponse` |
 | POST | `/jobs/:id/checkout/session` | **backend TODO** — returns `{ client_secret, checkout_id }` for Stripe Embedded Checkout |
 | GET | `/jobs/:id/checkout/:checkoutId/status` | saga status polling |
-| POST | `/jobs/:id/pay` | build pack checkout. `{ amount_cents ≥ 0, payment_method_id? (pm_…, required when > 0), email (required for ALL amounts, incl. 0) }` → `{ status: 'free'\|'paid'\|'requires_action', … }`. The contract still accepts any amount, but the UI sends a fixed $0.99 (`BUILD_PACK_PRICE_CENTS` in `OutputPanel.tsx`) — no more pay-what-you-want/$0 UI, **except** tester emails (SHA-256 hashes in `BYPASS_EMAIL_HASHES`, `OutputPanel.tsx`) which skip Stripe and send `amount_cents: 0`; that bypass only works while the backend keeps accepting $0. On `requires_action`, run 3DS with `client_secret` and do **not** re-call `/pay` — the webhook finishes and sends the email |
-| POST | `/donate` | `{ amount_cents }` (≥ 50) → `{ client_secret }` PaymentIntent. No email — tips are never emailed |
 
 Saga terminal states: `payment_captured` (success), `compensated`, `failed`, `manual_review`. Always render `customer_message`, never `error`.
-
-`/pay` errors come in two shapes — business rules `{ detail: { error, code } }` (codes incl. `AMOUNT_BELOW_MINIMUM` + `min_cents`, `PAYMENT_METHOD_REQUIRED`, `PAYMENTS_UNAVAILABLE`…; render `detail.error`) and FastAPI 422 field validation `{ detail: [{ loc, msg }] }` (entries with `email` in `loc` show inline on the email input — see `PayError` in `checkoutApi.ts`). The backend emails the build pack after every completed checkout (fire-and-forget; send outcomes never surface in `/pay` responses, and `/download` stays ungated). Server email validation: trimmed, ≤ 254 chars, `^[^@\s]+@[^@\s]+\.[^@\s]+$` — the frontend mirrors this loosely, never stricter.
 
 ---
 
@@ -166,14 +206,14 @@ Dev-only: `vite build` doesn't run optimizeDeps, so production output is untouch
 
 Do not remove this plugin. History: this replaced an HTTP-middleware patch of the on-disk bundle, which couldn't survive the File Shield eating the file and itself caused stale-hash 504 wedges. If a *504 Outdated Optimize Dep* loop or `EBUSY … asw-…` error ever returns: stop all dev servers, delete `node_modules/.vite`, restart.
 
-### Stripe Embedded Checkout — incomplete
+### Stripe Embedded Checkout — incomplete (only matters if the paused parts saga resumes)
 
-`StripeEmbedSlot.tsx` renders a placeholder with a "Simulate paid" button. The Stripe packages (`@stripe/react-stripe-js`, `@stripe/stripe-js`) are already installed. Remaining work:
+`StripeEmbedSlot.tsx` renders a placeholder with a "Simulate paid" button. Remaining work to go live:
 
-1. Wire `loadStripe(VITE_STRIPE_PK)` + `<EmbeddedCheckoutProvider>` / `<EmbeddedCheckout>` in `StripeEmbedSlot.tsx`
+1. Wire `<EmbeddedCheckoutProvider>` / `<EmbeddedCheckout>` in `StripeEmbedSlot.tsx` — reuse the `loadStripe(VITE_STRIPE_PK)` promise that already exists in `OutputPanel.tsx` (Stripe warns if you create two)
 2. Backend: `POST /jobs/:id/checkout/session` — create a Stripe Checkout Session, return `client_secret`
 3. Backend: webhook for `checkout.session.completed` to advance the saga via `checkout_id`
-4. Add `VITE_STRIPE_PK=pk_test_...` to `.env`
+4. Mount `StripeCheckoutPanel` somewhere (nothing imports it today)
 
 ### All logging gated on `DEV`
 
@@ -181,20 +221,18 @@ Do not remove this plugin. History: this replaced an HTTP-middleware patch of th
 
 ---
 
-## What's complete vs. in-progress
+## Status: live / paused / TODO
 
-**Complete:**
+**Live:**
 - Full conversion pipeline (2D/3D, framing, color quantization)
 - 3D preview with full 360° orbit + back-face wall hooks
-- Checkout shipping form + BrickOwl/LEGO quote flow
-- Saga status polling + customer-facing progress messages
-- Donation / tip flow (PaymentIntent; backend contract defined in `checkoutApi.ts`)
-- Fixed-price $0.99 build pack checkout via `POST /jobs/:id/pay` — required delivery email (prefilled from localStorage `laigo:buildPackEmail`), inline 422 field errors, card + 3DS via `BuildPackPaymentForm`. Email is the primary delivery channel; the ZIP still auto-downloads after payment. No free/direct-download UI remains (though `GET /jobs/:id/download` itself stays ungated). Exception: allowlisted tester emails (hashed, `BYPASS_EMAIL_HASHES` in `OutputPanel.tsx`) swap the Stripe form for a free "Send Build Pack" button (`amount_cents: 0`)
+- $0.99 build pack checkout with email delivery + tester bypass (see Monetization)
 
-**In progress (backend or SDK work needed):**
-- Stripe Embedded Checkout session endpoint + frontend SDK wiring
-- Stripe webhook → saga advancement
-- Backend pricing behind `/jobs/:id/stats` — while unfinished the endpoint returns `estimated_cost_cents: null` and the stats chip shows piece count only
+**Paused (working client code, no UI entry point — check before building on or deleting):**
+- Parts-purchase saga: `StripeCheckoutPanel` + `useCheckout` + gate/quote/session/status clients. Still missing: session endpoint (backend), completion webhook (backend), real Embedded Checkout mount (frontend)
+
+**Backend TODO (frontend already handles both cases):**
+- Pricing behind `/jobs/:id/stats` — returns `estimated_cost_cents: null` until finished; the stats chip shows piece count only
 
 ---
 

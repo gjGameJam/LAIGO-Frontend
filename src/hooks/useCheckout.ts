@@ -1,3 +1,6 @@
+// PAUSED — state machine for the parts-purchase saga (StripeCheckoutPanel),
+// which has no UI entry point today. See checkoutApi.ts header.
+
 import { useCallback, useEffect, useReducer, useRef } from 'react'
 import {
     createCheckoutSession,
