@@ -1,6 +1,6 @@
 # LAIGO Frontend
 
-Turn any image into a LEGO mosaic. Upload a photo, tune the parameters, and preview your mosaic in interactive 3D — all free. When you're happy with it, a **$0.99 build pack** gets you the piece order list and step-by-step instructions, delivered straight to your email.
+Turn any image into a LEGO mosaic. Upload a photo, tune the parameters, and preview your mosaic in interactive 3D — all free. When you're happy with it, a **$1.99 build pack** gets you the piece order list and step-by-step instructions, delivered straight to your email.
 
 > LAIGO is an independent fan project. Not affiliated with, endorsed by, or sponsored by the LEGO Group. LEGO is a trademark of the LEGO Group.
 
@@ -72,7 +72,7 @@ Use a `pk_test_…` key locally (Stripe test cards like `4242 4242 4242 4242` th
 | **Hero** | Marketing headline + tagline. |
 | **Parameters card** | Image upload (drag-drop, with crop/rotate/flip editing), block-width slider (1–10), 2D/3D segmented control, % background-color slider (3D only), Frame toggle, Convert CTA. |
 | **Output card** | Idle: draggable CSS-3D placeholder LEGO cube. Queued: queue-position chip. Running: animated brick-stacking loader. Complete: real Three.js mosaic (instanced studs, frame walls, baseplate, wall-hanging hooks on back face) with full-360° orbit, a stats chip (piece count + estimated cost), Reset / Expand / Receive Build Pack buttons, and a next-steps list. Expand pops the mosaic into a near-full-screen modal at the same camera angle. Flip the mosaic past horizontal to see the back face and hook placement. Failed: error breakdown. |
-| **Build pack modal** | Opened by "Receive Build Pack". Collects a delivery email, takes a $0.99 card payment (Stripe Payment Element, 3DS-capable), then confirms: the backend emails the build pack and a ZIP copy auto-downloads in the browser. |
+| **Build pack modal** | Opened by "Receive Build Pack". Collects a delivery email, takes a $1.99 card payment (Stripe Payment Element, 3DS-capable), then confirms: the backend emails the build pack and a ZIP copy auto-downloads in the browser. |
 
 ### Design system
 
@@ -84,13 +84,13 @@ Use a `pk_test_…` key locally (Stripe test cards like `4242 4242 4242 4242` th
 
 ---
 
-## The $0.99 build pack
+## The $1.99 build pack
 
 Converting and previewing are free. The product is the build pack — a ZIP with the piece order list and step-by-step building instructions:
 
-1. Click **Receive Build Pack** (below the finished preview, or the package button on its corner).
+1. Click **Receive Build Pack** (below the finished preview).
 2. Enter the email the pack should be delivered to (remembered locally for next time).
-3. Pay $0.99 by card — Stripe Payment Element, 3D Secure supported.
+3. Pay $1.99 by card — Stripe Payment Element, 3D Secure supported.
 4. The backend emails the pack to you; a copy also auto-downloads in the browser right away.
 
 Email is the primary delivery channel — check spam if it doesn't arrive. Payments go through `POST /jobs/:id/pay` (see backend contract below).
@@ -122,7 +122,7 @@ src/
     StudStackingLoader.tsx     # Framer Motion loader — bricks drop and stack on loop
     ErrorBoundary.tsx          # React error boundary
     checkout/
-      BuildPackPaymentForm.tsx # $0.99 card form (Stripe Payment Element → POST /jobs/:id/pay, 3DS-capable)
+      BuildPackPaymentForm.tsx # $1.99 card form (Stripe Payment Element → POST /jobs/:id/pay, 3DS-capable)
       *                        # remaining files are the paused parts-purchase saga (not mounted)
 
   ui/
@@ -156,7 +156,7 @@ public/                        # Favicons + manifest
    - `failed` → error breakdown
 5. `ConvertButton` also tracks the in-flight job locally so its progress fill matches the output state without re-fetching.
 6. **Expand button** on the preview card snapshots the small scene's camera state (`position`, `target`, auto-rotate flag) and hands it to `MosaicExpandedView`, which portals a near-full-screen modal to `document.body`. The modal opens at the exact same angle and zoom the user was looking at.
-7. Once the preview is up, `useJobStats` fetches `GET /jobs/:id/stats` once for the piece-count/cost chip (hidden if the endpoint 404s), and **Receive Build Pack** opens the checkout modal: delivery email + $0.99 card payment (`BuildPackPaymentForm` → `POST /jobs/:id/pay`, 3DS via `handleNextAction` when the bank requires it) → the backend emails the pack and the ZIP auto-downloads as a local copy.
+7. Once the preview is up, `useJobStats` fetches `GET /jobs/:id/stats` once for the piece-count/cost chip (hidden if the endpoint 404s), and **Receive Build Pack** opens the checkout modal: delivery email + $1.99 card payment (`BuildPackPaymentForm` → `POST /jobs/:id/pay`, 3DS via `handleNextAction` when the bank requires it) → the backend emails the pack and the ZIP auto-downloads as a local copy.
 
 ### Backend contract
 

@@ -28,7 +28,7 @@ const STEPS = [
     {
         icon: Mail,
         title: 'Check out & build',
-        body: 'Complete the $0.99 checkout and we\'ll email your build pack — a piece order list plus step-by-step instructions. Order the pieces, then build when they arrive.',
+        body: 'Complete the $1.99 checkout and we\'ll email your build pack — a piece order list plus step-by-step instructions. Order the pieces, then build when they arrive.',
     },
 ]
 

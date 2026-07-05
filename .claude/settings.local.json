@@ -60,7 +60,8 @@
       "Bash(echo \"Exit code: $?\")",
       "Bash(cat)",
       "Bash(chmod +x /tmp/bsearch.sh)",
-      "Bash(/tmp/bsearch.sh 262144)"
+      "Bash(/tmp/bsearch.sh 262144)",
+      "PowerShell(git *)"
     ]
   }
 }

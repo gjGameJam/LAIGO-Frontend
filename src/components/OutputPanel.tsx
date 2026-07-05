@@ -22,17 +22,17 @@ import type { JobState } from '../hooks/useJob'
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK ?? '')
 
 const NEXT_STEPS = [
-    { icon: CreditCardIcon, text: 'Tap Receive Build Pack below and check out — the build pack is $0.99.' },
-    { icon: MailIcon, text: "We'll email your build pack: piece order list + step-by-step instructions." },
-    { icon: ShoppingCartIcon, text: 'Order your pieces using the emailed list — full details in the email.' },
-    { icon: HammerIcon, text: 'When the pieces arrive, follow the instructions and build!' },
+    { icon: CreditCardIcon, text: 'Select Receive Build Pack below and check out for $1.99.' },
+    { icon: MailIcon, text: "We'll email your piece order list and instruction set." },
+    { icon: ShoppingCartIcon, text: 'Order all pieces using the list in that email.' },
+    { icon: HammerIcon, text: 'Once your pieces arrive, follow the instructions and start building.' },
 ]
 
 // Fixed price — the build pack is no longer pay-what-you-want. The backend
-// /pay contract still accepts any amount_cents ≥ 0; the UI just sends 99.
-const BUILD_PACK_PRICE_CENTS = 99
-// "$0.99", not "99¢" — the cent sign is too easy to misread as $99.
-const BUILD_PACK_PRICE_LABEL = '$0.99'
+// /pay contract still accepts any amount_cents ≥ 0; the UI just sends 199.
+const BUILD_PACK_PRICE_CENTS = 199
+// "$1.99", not "199¢" — the cent sign is too easy to misread as $199.
+const BUILD_PACK_PRICE_LABEL = '$1.99'
 
 // Mirrors the server's deliberately loose email check — do not be stricter.
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
@@ -376,7 +376,6 @@ function CompleteView({
             >
                 <div className="flex-1 min-h-[300px]">
                     <BrickPreview3D
-                        onReceiveBuildPack={downloadUrl ? openModal : null}
                         previewData={previewData}
                         previewError={previewError}
                     />

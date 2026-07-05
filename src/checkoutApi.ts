@@ -217,7 +217,7 @@ export async function getCheckoutStatus(
 
 // ════ LIVE: build pack checkout ═════════════════════════════════════════════
 //
-// The UI charges a fixed $0.99 (BUILD_PACK_PRICE_CENTS in OutputPanel.tsx).
+// The UI charges a fixed $1.99 (BUILD_PACK_PRICE_CENTS in OutputPanel.tsx).
 // The contract itself still accepts any amount_cents ≥ 0 — allowlisted tester
 // emails (BYPASS_EMAIL_HASHES in OutputPanel.tsx) use the 0 path.
 //

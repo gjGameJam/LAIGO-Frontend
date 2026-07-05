@@ -16,7 +16,7 @@ interface StripeCheckoutPanelProps {
 /**
  * PAUSED — this panel is not mounted anywhere. It belongs to the physical
  * parts-purchase saga (BrickOwl + Stripe Embedded Checkout), which is on hold
- * indefinitely; the live monetization path is the $0.99 build pack modal in
+ * indefinitely; the live monetization path is the $1.99 build pack modal in
  * OutputPanel. Check before building on this.
  *
  * Post-mosaic Stripe gate.

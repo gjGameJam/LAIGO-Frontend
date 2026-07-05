@@ -1,6 +1,6 @@
 # CLAUDE.md — LAIGO Frontend
 
-React + Three.js app: image → LEGO mosaic. User uploads a photo, tunes parameters, backend runs color-quantization, frontend renders the result as an interactive 3D mosaic. Converting is free; the product is the **$0.99 build pack** (piece order list + step-by-step instructions), paid by card and delivered by email — see the Monetization section. A physical parts-purchase flow (Stripe + BrickOwl saga) exists in code but is **paused** with no UI entry point.
+React + Three.js app: image → LEGO mosaic. User uploads a photo, tunes parameters, backend runs color-quantization, frontend renders the result as an interactive 3D mosaic. Converting is free; the product is the **$1.99 build pack** (piece order list + step-by-step instructions), paid by card and delivered by email — see the Monetization section. A physical parts-purchase flow (Stripe + BrickOwl saga) exists in code but is **paused** with no UI entry point.
 
 ---
 
@@ -39,7 +39,7 @@ Vite only reads env files at startup — restart dev server after changes.
    - `complete` → one-shot `GET /jobs/:id/preview` → `BrickPreview3D` swaps CSS cube for `MosaicScene`
    - `failed` → error breakdown
 5. Expand button: snapshots camera `{ position, target, isAutoRotating }` from `MosaicScene` ref, hands to `MosaicExpandedView` portal
-6. Purchase: **Receive Build Pack** (main CTA under the preview, or the package button in the 3D preview's corner) → modal in `OutputPanel` collects the delivery email → `BuildPackPaymentForm` tokenizes the card → `POST /jobs/:id/pay` → backend emails the pack; the ZIP also auto-downloads as a parallel copy
+6. Purchase: **Receive Build Pack** (main CTA under the preview) → modal in `OutputPanel` collects the delivery email → `BuildPackPaymentForm` tokenizes the card → `POST /jobs/:id/pay` → backend emails the pack; the ZIP also auto-downloads as a parallel copy
 
 ### Key files
 
@@ -59,7 +59,7 @@ src/
     MosaicStatsChip.tsx       Top-center pieces + est. cost pill (inline preview + expanded modal)
     StudStackingLoader.tsx    Framer Motion brick-stacking animation
     checkout/
-      BuildPackPaymentForm.tsx LIVE — fixed-price ($0.99) card form: tokenize (createPaymentMethod)
+      BuildPackPaymentForm.tsx LIVE — fixed-price ($1.99) card form: tokenize (createPaymentMethod)
                                → POST /jobs/:id/pay → handleNextAction on requires_action.
                                Needs Elements paymentMethodCreation: 'manual' (set in OutputPanel)
       StripeCheckoutPanel.tsx  PAUSED — parts saga UI (shipping → quote → pay → saga); not mounted
@@ -82,14 +82,14 @@ src/
 
 ## Monetization
 
-Converting is free. Revenue is the **$0.99 build pack** — a ZIP with the piece order list + step-by-step instructions, emailed by the backend after checkout. Everything lives in `OutputPanel.tsx` (modal + policy) and `BuildPackPaymentForm.tsx` (card form).
+Converting is free. Revenue is the **$1.99 build pack** — a ZIP with the piece order list + step-by-step instructions, emailed by the backend after checkout. Everything lives in `OutputPanel.tsx` (modal + policy) and `BuildPackPaymentForm.tsx` (card form).
 
-### Live: $0.99 build pack
+### Live: $1.99 build pack
 
-- **Entry points:** the "Receive Build Pack" CTA under the finished preview, and the package button in the 3D preview's corner. Both open the same modal. There is deliberately no direct-download link anywhere in the UI.
-- **Flow:** required delivery email (prefilled from localStorage `laigo:buildPackEmail`) → Stripe Payment Element → `elements.submit()` → `stripe.createPaymentMethod()` → `POST /jobs/:id/pay` with `{ amount_cents: 99, payment_method_id, email }` → on `requires_action`, `stripe.handleNextAction()` runs 3DS and the flow **must not** re-call `/pay` (the backend webhook completes the charge and sends the email).
+- **Entry points:** the "Receive Build Pack" CTA under the finished preview. It opens the checkout modal. There is deliberately no direct-download link anywhere in the UI.
+- **Flow:** required delivery email (prefilled from localStorage `laigo:buildPackEmail`) → Stripe Payment Element → `elements.submit()` → `stripe.createPaymentMethod()` → `POST /jobs/:id/pay` with `{ amount_cents: 199, payment_method_id, email }` → on `requires_action`, `stripe.handleNextAction()` runs 3DS and the flow **must not** re-call `/pay` (the backend webhook completes the charge and sends the email).
 - **Delivery:** email is the primary channel — sends are fire-and-forget server-side and never surface in `/pay` responses, so the UI can't know if one bounced. The ZIP also auto-downloads in the browser as a parallel copy. `GET /jobs/:id/download` stays **ungated** (accepted for now): the paywall is UI-level only.
-- **Price:** `BUILD_PACK_PRICE_CENTS = 99` / `BUILD_PACK_PRICE_LABEL = '$0.99'` in `OutputPanel.tsx`. Write the label as `$0.99`, never `99¢` — the cent sign is too easy to misread as $99. The `/pay` contract accepts any `amount_cents ≥ 0`; the fixed price is UI policy, not a backend rule.
+- **Price:** `BUILD_PACK_PRICE_CENTS = 199` / `BUILD_PACK_PRICE_LABEL = '$1.99'` in `OutputPanel.tsx`. Write the label as `$1.99`, never `199¢` — the cent sign is too easy to misread as $199. The `/pay` contract accepts any `amount_cents ≥ 0`; the fixed price is UI policy, not a backend rule.
 - **Stripe specifics:** `<Elements>` must use `mode: 'payment'` + `paymentMethodTypes: ['card']` (backend PaymentIntent is card-only) + `paymentMethodCreation: 'manual'` (required to call `createPaymentMethod` with the Payment Element).
 - **Email validation:** mirror the server loosely, never stricter — trimmed, ≤ 254 chars, `^[^@\s]+@[^@\s]+\.[^@\s]+$` (`EMAIL_RE` in `OutputPanel.tsx`).
 
@@ -226,7 +226,7 @@ Do not remove this plugin. History: this replaced an HTTP-middleware patch of th
 **Live:**
 - Full conversion pipeline (2D/3D, framing, color quantization)
 - 3D preview with full 360° orbit + back-face wall hooks
-- $0.99 build pack checkout with email delivery + tester bypass (see Monetization)
+- $1.99 build pack checkout with email delivery + tester bypass (see Monetization)
 
 **Paused (working client code, no UI entry point — check before building on or deleting):**
 - Parts-purchase saga: `StripeCheckoutPanel` + `useCheckout` + gate/quote/session/status clients. Still missing: session endpoint (backend), completion webhook (backend), real Embedded Checkout mount (frontend)
