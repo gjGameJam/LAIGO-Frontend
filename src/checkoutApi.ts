@@ -212,7 +212,125 @@ export async function getCheckoutStatus(
     return (await res.json()) as CheckoutStatusResponse
 }
 
+// ── Pay-what-you-want build pack checkout ───────────────────────────────────
+//
+// POST /jobs/:jobId/pay
+//   Body:    { amount_cents: int >= 0, payment_method_id?: "pm_…", email: str }
+//            payment_method_id is required only when amount_cents > 0.
+//            email is required for ALL amounts, including 0 — the backend emails
+//            the build pack (instructions PDF + brick order list) after every
+//            completed checkout. Send outcomes are fire-and-forget server-side
+//            and never surface in the /pay response; the ungated /download
+//            endpoint remains the parallel in-browser channel.
+//   200:     { status: "free", amount_cents: 0 }
+//            { status: "paid", amount_cents: N, payment_intent_id: "pi_…" }
+//            { status: "requires_action", client_secret, payment_intent_id }
+//              → finish 3DS via Stripe.js with client_secret. Do NOT re-call
+//                /pay afterwards — the backend's webhook detects completion and
+//                sends the email itself (the address rides in the PaymentIntent
+//                metadata).
+//   Errors come in two distinct shapes:
+//     business rules → { detail: { error, code } } — render detail.error
+//     body validation (422) → FastAPI array { detail: [{ loc, msg, … }] } —
+//       entries with "email" in loc are exposed via PayError.emailErrors for
+//       inline display on the email input.
+
+export interface PayRequest {
+    amount_cents: number
+    payment_method_id?: string
+    email: string
+}
+
+export type PayResponse =
+    | { status: 'free'; amount_cents: number }
+    | { status: 'paid'; amount_cents: number; payment_intent_id: string }
+    | { status: 'requires_action'; client_secret: string; payment_intent_id: string }
+
+/** Business-rule codes the backend returns in the { detail: { error, code } } shape. */
+export type PayBusinessErrorCode =
+    | 'AMOUNT_BELOW_MINIMUM'
+    | 'PAYMENT_METHOD_REQUIRED'
+    | 'INVALID_JOB_ID'
+    | 'JOB_NOT_FOUND'
+    | 'PAYMENTS_UNAVAILABLE'
+    | 'PAYMENT_RETRYABLE'
+    | 'PAYMENT_FAILED'
+
+export class PayError extends Error {
+    /** Business-rule code, when the error came in the { error, code } shape. */
+    code: string | null
+    /** Validation messages for the email field (422 array shape) — show inline. */
+    emailErrors: string[]
+
+    constructor(message: string, opts: { code?: string | null; emailErrors?: string[] } = {}) {
+        super(message)
+        this.name = 'PayError'
+        this.code = opts.code ?? null
+        this.emailErrors = opts.emailErrors ?? []
+    }
+}
+
+async function readPayError(res: Response): Promise<PayError> {
+    const fallback = 'Something went wrong — please try again.'
+    const text = await res.text().catch(() => '')
+    if (!text) return new PayError(fallback)
+
+    let detail: unknown
+    try {
+        detail = (JSON.parse(text) as { detail?: unknown }).detail
+    } catch {
+        return new PayError(text.length > 240 ? text.slice(0, 240) + '…' : text)
+    }
+
+    // FastAPI/pydantic body-validation shape: detail is an array of { loc, msg }.
+    if (Array.isArray(detail)) {
+        const entries = detail.filter(
+            (entry): entry is { loc?: unknown; msg: string } =>
+                !!entry && typeof entry === 'object' &&
+                typeof (entry as { msg?: unknown }).msg === 'string',
+        )
+        const emailErrors = entries
+            .filter(entry => Array.isArray(entry.loc) && entry.loc.includes('email'))
+            .map(entry => entry.msg.replace(/^Value error,\s*/i, ''))
+        return new PayError(emailErrors[0] ?? entries[0]?.msg ?? fallback, { emailErrors })
+    }
+
+    // Business-rule shape: { detail: { error, code } }.
+    if (detail && typeof detail === 'object') {
+        const { error, code } = detail as { error?: unknown; code?: unknown }
+        return new PayError(typeof error === 'string' ? error : fallback, {
+            code: typeof code === 'string' ? code : null,
+        })
+    }
+
+    if (typeof detail === 'string') return new PayError(detail)
+    return new PayError(fallback)
+}
+
+export async function payJob(
+    jobId: string,
+    body: PayRequest,
+    signal?: AbortSignal,
+): Promise<PayResponse> {
+    log('POST →', `${API}/jobs/${jobId}/pay`)
+    const res = await fetch(`${API}/jobs/${jobId}/pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal,
+    })
+    if (!res.ok) {
+        const error = await readPayError(res)
+        errLog('Pay failed:', res.status, error.message)
+        throw error
+    }
+    return (await res.json()) as PayResponse
+}
+
 // ── Donation / tip ──────────────────────────────────────────────────────────
+//
+// No email field here — tips are never emailed. Build-pack delivery goes
+// through POST /jobs/:id/pay above.
 //
 // Backend contract (add to your FastAPI router):
 //

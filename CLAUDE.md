@@ -59,6 +59,9 @@ src/
       StripeCheckoutPanel.tsx  Shipping → quote → pay → saga state machine UI
       StripeEmbedSlot.tsx      Stripe Embedded Checkout mount point (placeholder — see below)
       ShippingStep.tsx         Email + country + ZIP form
+      BuildPackPaymentForm.tsx Pay-what-you-want card form: tokenize (createPaymentMethod)
+                               → POST /jobs/:id/pay → handleNextAction on requires_action.
+                               Needs Elements paymentMethodCreation: 'manual' (set in OutputPanel)
 
   hooks/
     useJob.ts                 Polls /jobs/:id; fetches /preview on complete
@@ -117,9 +120,12 @@ Preview error codes: `PREVIEW_NOT_AVAILABLE` (404) | `PREVIEW_CORRUPTED` (500) |
 | POST | `/jobs/:id/checkout/quote` | body: `{ shipping_country, shipping_zip, customer_email }` → `QuoteResponse` |
 | POST | `/jobs/:id/checkout/session` | **backend TODO** — returns `{ client_secret, checkout_id }` for Stripe Embedded Checkout |
 | GET | `/jobs/:id/checkout/:checkoutId/status` | saga status polling |
-| POST | `/donate` | `{ amount_cents }` (≥ 50) → `{ client_secret }` PaymentIntent |
+| POST | `/jobs/:id/pay` | pay-what-you-want build pack. `{ amount_cents ≥ 0, payment_method_id? (pm_…, required when > 0), email (required for ALL amounts, incl. 0) }` → `{ status: 'free'\|'paid'\|'requires_action', … }`. On `requires_action`, run 3DS with `client_secret` and do **not** re-call `/pay` — the webhook finishes and sends the email |
+| POST | `/donate` | `{ amount_cents }` (≥ 50) → `{ client_secret }` PaymentIntent. No email — tips are never emailed |
 
 Saga terminal states: `payment_captured` (success), `compensated`, `failed`, `manual_review`. Always render `customer_message`, never `error`.
+
+`/pay` errors come in two shapes — business rules `{ detail: { error, code } }` (codes incl. `AMOUNT_BELOW_MINIMUM` + `min_cents`, `PAYMENT_METHOD_REQUIRED`, `PAYMENTS_UNAVAILABLE`…; render `detail.error`) and FastAPI 422 field validation `{ detail: [{ loc, msg }] }` (entries with `email` in `loc` show inline on the email input — see `PayError` in `checkoutApi.ts`). The backend emails the build pack after every completed checkout (fire-and-forget; send outcomes never surface in `/pay` responses, and `/download` stays ungated). Server email validation: trimmed, ≤ 254 chars, `^[^@\s]+@[^@\s]+\.[^@\s]+$` — the frontend mirrors this loosely, never stricter.
 
 ---
 
@@ -183,6 +189,7 @@ Do not remove this plugin. History: this replaced an HTTP-middleware patch of th
 - Checkout shipping form + BrickOwl/LEGO quote flow
 - Saga status polling + customer-facing progress messages
 - Donation / tip flow (PaymentIntent; backend contract defined in `checkoutApi.ts`)
+- Pay-what-you-want build pack checkout via `POST /jobs/:id/pay` — required delivery email (both $0 and paid, prefilled from localStorage `laigo:buildPackEmail`), inline 422 field errors, card + 3DS via `BuildPackPaymentForm`
 
 **In progress (backend or SDK work needed):**
 - Stripe Embedded Checkout session endpoint + frontend SDK wiring
