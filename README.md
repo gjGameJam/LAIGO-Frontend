@@ -110,7 +110,7 @@ src/
 
   components/
     Navbar.tsx                 # Sticky glass nav with wordmark + status pill + help + theme toggle
-    LaigoWordmark.tsx          # Inline SVG wordmark built from LegoThick glyph paths
+    BrickWord.tsx              # Inline SVG brick-style wordmark (any word) built from LegoThick glyph paths
     HelpModal.tsx              # Four-step how-to + support contact
     ParameterForm.tsx          # Form values + Convert flow (submits + polls API)
     ConvertButton.tsx          # Violet button with LEGO-yellow progress fill + stud strip

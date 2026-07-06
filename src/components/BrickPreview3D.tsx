@@ -179,7 +179,7 @@ export function BrickPreview3D({
                 ) : (
                     <p className="absolute bottom-3 text-[11px] text-zinc-400 dark:text-zinc-600 pointer-events-none">
                         {hasPreview
-                            ? 'Drag to rotate · scroll to zoom · your mosaic preview'
+                            ? 'Drag to rotate · scroll to zoom'
                             : 'Drag to rotate · convert your image to see the real preview'}
                     </p>
                 )}

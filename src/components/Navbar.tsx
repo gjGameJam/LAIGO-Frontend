@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sun, Moon, HelpCircle } from 'lucide-react'
 import clsx from 'clsx'
-import { LaigoWordmark } from './LaigoWordmark'
+import { BrickWord } from './BrickWord'
 import { HelpModal } from './HelpModal'
 
 export type ApiStatus = 'checking' | 'online' | 'offline'
@@ -70,12 +70,7 @@ export function Navbar({ darkMode, onToggleDark, apiStatus }: NavbarProps) {
                         {s.label}
                     </motion.span>
 
-                    <div className="flex items-center gap-1.5">
-                        <LaigoWordmark height={18} />
-                        <span className="text-sm font-semibold tracking-tight text-zinc-700 dark:text-zinc-300">
-                            Mosaic Maker
-                        </span>
-                    </div>
+                    <BrickWord word="LAIGO Mosaic Maker" height={18} />
                 </div>
 
                 <div className="flex items-center gap-2">
