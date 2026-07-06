@@ -70,8 +70,11 @@ export function Navbar({ darkMode, onToggleDark, apiStatus }: NavbarProps) {
                         {s.label}
                     </motion.span>
 
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-1.5">
                         <LaigoWordmark height={18} />
+                        <span className="text-sm font-semibold tracking-tight text-zinc-700 dark:text-zinc-300">
+                            Mosaic Maker
+                        </span>
                     </div>
                 </div>
 

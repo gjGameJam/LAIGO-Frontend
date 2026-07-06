@@ -126,7 +126,7 @@ export default function App() {
 
                     {/* Fixed-bottom disclaimer */}
                     <p className="fixed bottom-2 left-0 right-0 text-center text-[10px] text-zinc-400 dark:text-zinc-600 px-4 z-10 pointer-events-none">
-                        LAIGO is an independent fan project and is not affiliated with, endorsed by, or sponsored by the LEGO Group. LEGO is a trademark of the LEGO Group.
+                        LAIGO Mosaic Maker is an independent fan project and is not affiliated with, endorsed by, or sponsored by the LEGO Group. LEGO is a trademark of the LEGO Group.
                     </p>
                 </div>
             </ErrorBoundary>

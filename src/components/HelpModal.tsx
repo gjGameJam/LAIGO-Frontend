@@ -138,7 +138,7 @@ export function HelpModal({ onClose }: HelpModalProps) {
 
                 <div className="px-6 sm:px-8 py-4 border-t border-zinc-200/70 dark:border-zinc-800/70">
                     <p className="text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-500 text-center">
-                        LAIGO is an independent fan project. <span className="font-semibold text-zinc-700 dark:text-zinc-300">I am not LEGO</span> — LAIGO is not affiliated with, endorsed by, or sponsored by the LEGO Group. LEGO is a trademark of the LEGO Group.
+                        LAIGO Mosaic Maker is an independent fan project. <span className="font-semibold text-zinc-700 dark:text-zinc-300">I am not LEGO</span> — LAIGO Mosaic Maker is not affiliated with, endorsed by, or sponsored by the LEGO Group. LEGO is a trademark of the LEGO Group.
                     </p>
                 </div>
             </motion.div>
